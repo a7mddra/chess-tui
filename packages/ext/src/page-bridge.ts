@@ -485,6 +485,22 @@ function applyMove(uci: string): { ok: boolean; fen?: string; error?: string } {
 }
 
 let lastFen = "";
+let lastSnapshotSignal = "";
+
+function buildSnapshotSignal(snapshot: GameClockSnapshot | null): string {
+  if (!snapshot) {
+    return "no-snapshot";
+  }
+
+  return [
+    snapshot.user.username ?? "",
+    snapshot.user.placement,
+    snapshot.user.isTurn ? "1" : "0",
+    snapshot.opponent.username ?? "",
+    snapshot.opponent.placement,
+    snapshot.opponent.isTurn ? "1" : "0"
+  ].join("|");
+}
 
 function emitFenIfChanged(force = false): void {
   const fen = readFen();
@@ -492,12 +508,17 @@ function emitFenIfChanged(force = false): void {
     return;
   }
 
-  if (!force && fen === lastFen) {
+  const snapshot = readGameClockSnapshot(fen);
+  const snapshotSignal = buildSnapshotSignal(snapshot);
+  const fenChanged = fen !== lastFen;
+  const snapshotChanged = snapshotSignal !== lastSnapshotSignal;
+
+  if (!force && !fenChanged && !snapshotChanged) {
     return;
   }
 
   lastFen = fen;
-  const snapshot = readGameClockSnapshot(fen);
+  lastSnapshotSignal = snapshotSignal;
 
   postToContent({
     type: "FEN_UPDATE",

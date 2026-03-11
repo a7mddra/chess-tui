@@ -1,11 +1,9 @@
-import { randomUUID } from "node:crypto";
 import process from "node:process";
 
-import { WebSocket, WebSocketServer } from "ws";
+import { WebSocket } from "ws";
 
-const PORT = 8765;
-const HEARTBEAT_INTERVAL_MS = 15000;
-const HEARTBEAT_PREFIX = "__hb_clock__";
+const RELAY_URL = process.env.CHESS_TUI_WATCHER_URL ?? "ws://127.0.0.1:8766";
+const RECONNECT_DELAYS_MS = [250, 500, 1000, 2000, 5000] as const;
 
 type PlayerClockSnapshot = {
   username: string | null;
@@ -56,14 +54,16 @@ type IncomingMessage =
       requestId?: string;
     };
 
-const wsServer = new WebSocketServer({ port: PORT });
-let extensionSocket: WebSocket | null = null;
-let heartbeatTimer: NodeJS.Timeout | null = null;
+let relaySocket: WebSocket | null = null;
 let renderTimer: NodeJS.Timeout | null = null;
+let reconnectTimer: NodeJS.Timeout | null = null;
+let reconnectAttempt = 0;
+let isShuttingDown = false;
 
 let latestSnapshot: GameClockSnapshot | null = null;
 let latestFen: string | null = null;
-let connectionStatus = "waiting for extension";
+let relayStatus = `connecting to relay (${RELAY_URL})`;
+let extensionStatus = "waiting for extension status";
 let lastSocketEvent = "not connected";
 
 function formatClockFromMs(ms: number): string {
@@ -93,13 +93,15 @@ function drawWatcherScreen(): void {
   const now = Date.now();
 
   process.stdout.write("\x1Bc");
-  process.stdout.write("Chess.com Clock Watcher (move-triggered snapshots + local ticking)\n");
-  process.stdout.write(`WS: ${connectionStatus}\n`);
+  process.stdout.write("Chess.com Clock Watcher (shared relay mode)\n");
+  process.stdout.write(`Relay: ${relayStatus}\n`);
+  process.stdout.write(`Extension: ${extensionStatus}\n`);
   process.stdout.write(`Socket: ${lastSocketEvent}\n`);
 
   if (!latestSnapshot) {
     process.stdout.write("\nWaiting for first game snapshot...\n");
-    process.stdout.write("Tip: make a move on chess.com to trigger snapshot update.\n");
+    process.stdout.write("Tip: run `npm run test:move-bridge`, then make a move on chess.com.\n");
+    process.stdout.write("Press Ctrl+C to stop.\n");
     return;
   }
 
@@ -128,19 +130,6 @@ function drawWatcherScreen(): void {
   process.stdout.write("\nPress Ctrl+C to stop.\n");
 }
 
-function sendHeartbeatPing(): void {
-  if (!extensionSocket || extensionSocket.readyState !== WebSocket.OPEN) {
-    return;
-  }
-
-  extensionSocket.send(
-    JSON.stringify({
-      type: "ping",
-      requestId: `${HEARTBEAT_PREFIX}${randomUUID()}`
-    })
-  );
-}
-
 function handleIncoming(raw: unknown): void {
   if (typeof raw !== "object" || raw === null || typeof (raw as { type?: unknown }).type !== "string") {
     return;
@@ -150,7 +139,7 @@ function handleIncoming(raw: unknown): void {
 
   switch (message.type) {
     case "status": {
-      connectionStatus = `${message.status}${message.detail ? ` (${message.detail})` : ""}`;
+      extensionStatus = `${message.status}${message.detail ? ` (${message.detail})` : ""}`;
       return;
     }
     case "fen": {
@@ -163,7 +152,7 @@ function handleIncoming(raw: unknown): void {
       return;
     }
     case "pong": {
-      if (message.requestId?.startsWith(HEARTBEAT_PREFIX)) {
+      if (message.requestId?.startsWith("__hb_")) {
         return;
       }
       lastSocketEvent = `pong ${new Date(message.ts).toISOString()}`;
@@ -187,6 +176,75 @@ function handleIncoming(raw: unknown): void {
   }
 }
 
+function scheduleReconnect(): void {
+  if (isShuttingDown || reconnectTimer) {
+    return;
+  }
+
+  const index = Math.min(reconnectAttempt, RECONNECT_DELAYS_MS.length - 1);
+  const delay = RECONNECT_DELAYS_MS[index];
+  reconnectAttempt += 1;
+
+  reconnectTimer = setTimeout(() => {
+    reconnectTimer = null;
+    connectRelay();
+  }, delay);
+}
+
+function connectRelay(): void {
+  if (isShuttingDown) {
+    return;
+  }
+
+  if (relaySocket && (relaySocket.readyState === WebSocket.OPEN || relaySocket.readyState === WebSocket.CONNECTING)) {
+    return;
+  }
+
+  relayStatus = `connecting to relay (${RELAY_URL})`;
+  const socket = new WebSocket(RELAY_URL);
+  relaySocket = socket;
+
+  socket.on("open", () => {
+    if (relaySocket !== socket) {
+      return;
+    }
+    reconnectAttempt = 0;
+    relayStatus = `connected (${RELAY_URL})`;
+    lastSocketEvent = `connected to ${RELAY_URL}`;
+  });
+
+  socket.on("message", (data) => {
+    try {
+      const parsed = JSON.parse(data.toString()) as unknown;
+      handleIncoming(parsed);
+    } catch {
+      lastSocketEvent = "received non-JSON payload";
+    }
+  });
+
+  socket.on("close", () => {
+    if (relaySocket === socket) {
+      relaySocket = null;
+    }
+
+    if (isShuttingDown) {
+      return;
+    }
+
+    relayStatus = `disconnected (${RELAY_URL})`;
+    extensionStatus = "waiting for extension status";
+    lastSocketEvent = "waiting for move-harness relay";
+    scheduleReconnect();
+  });
+
+  socket.on("error", (error) => {
+    if (relaySocket !== socket || isShuttingDown) {
+      return;
+    }
+    lastSocketEvent = `relay error: ${error.message}`;
+  });
+}
+
 function startRenderLoop(): void {
   if (renderTimer) {
     return;
@@ -199,74 +257,27 @@ function startRenderLoop(): void {
   drawWatcherScreen();
 }
 
-wsServer.on("connection", (socket, request) => {
-  if (heartbeatTimer) {
-    clearInterval(heartbeatTimer);
-    heartbeatTimer = null;
-  }
-
-  extensionSocket = socket;
-  connectionStatus = "connected";
-  lastSocketEvent = `connected from ${request.socket.remoteAddress ?? "unknown"}`;
-
-  heartbeatTimer = setInterval(() => {
-    sendHeartbeatPing();
-  }, HEARTBEAT_INTERVAL_MS);
-
-  socket.on("message", (data) => {
-    try {
-      const parsed = JSON.parse(data.toString()) as unknown;
-      handleIncoming(parsed);
-    } catch {
-      lastSocketEvent = "received non-JSON payload";
-    }
-  });
-
-  socket.on("close", () => {
-    if (extensionSocket === socket) {
-      extensionSocket = null;
-    }
-    if (heartbeatTimer) {
-      clearInterval(heartbeatTimer);
-      heartbeatTimer = null;
-    }
-    connectionStatus = "disconnected";
-    lastSocketEvent = "extension disconnected";
-  });
-
-  socket.on("error", (error) => {
-    lastSocketEvent = `socket error: ${error.message}`;
-  });
-});
-
-wsServer.on("error", (error: NodeJS.ErrnoException) => {
-  if (error.code === "EADDRINUSE") {
-    process.stdout.write(`\n[watcher] port ${PORT} is already in use. Stop the other test harness and retry.\n`);
-    process.exit(1);
-  }
-
-  process.stdout.write(`\n[watcher] websocket server error: ${error.message}\n`);
-  process.exit(1);
-});
-
 function shutdown(): void {
-  if (heartbeatTimer) {
-    clearInterval(heartbeatTimer);
-    heartbeatTimer = null;
+  if (isShuttingDown) {
+    return;
   }
+  isShuttingDown = true;
 
   if (renderTimer) {
     clearInterval(renderTimer);
     renderTimer = null;
   }
 
-  if (extensionSocket && extensionSocket.readyState === WebSocket.OPEN) {
-    extensionSocket.close();
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
   }
 
-  wsServer.close(() => {
-    process.exit(0);
-  });
+  if (relaySocket && (relaySocket.readyState === WebSocket.OPEN || relaySocket.readyState === WebSocket.CONNECTING)) {
+    relaySocket.close();
+  }
+
+  process.exit(0);
 }
 
 process.on("SIGINT", () => {
@@ -274,3 +285,4 @@ process.on("SIGINT", () => {
 });
 
 startRenderLoop();
+connectRelay();

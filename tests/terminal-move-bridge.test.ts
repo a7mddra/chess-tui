@@ -4,7 +4,8 @@ import { stdin, stdout } from "node:process";
 
 import { WebSocket, WebSocketServer } from "ws";
 
-const PORT = 8765;
+const EXTENSION_PORT = 8765;
+const RELAY_PORT = 8766;
 const UCI_MOVE_REGEX = /^[a-h][1-8][a-h][1-8][qrbn]?$/i;
 const HEARTBEAT_INTERVAL_MS = 15000;
 const HEARTBEAT_PREFIX = "__hb__";
@@ -43,7 +44,9 @@ type PendingMove = {
 };
 
 const pendingMoves = new Map<string, PendingMove>();
-const wsServer = new WebSocketServer({ port: PORT });
+const wsServer = new WebSocketServer({ port: EXTENSION_PORT });
+const relayServer = new WebSocketServer({ port: RELAY_PORT });
+const relayClients = new Set<WebSocket>();
 let extensionSocket: WebSocket | null = null;
 let heartbeatTimer: NodeJS.Timeout | null = null;
 
@@ -81,6 +84,24 @@ function sendJson(payload: Record<string, unknown>): void {
   extensionSocket.send(JSON.stringify(payload));
 }
 
+function relay(payload: Record<string, unknown>): void {
+  const body = JSON.stringify(payload);
+  for (const client of relayClients) {
+    if (client.readyState !== WebSocket.OPEN) {
+      continue;
+    }
+    client.send(body);
+  }
+}
+
+function relayStatus(status: "connected" | "disconnected", detail: string): void {
+  relay({
+    type: "status",
+    status,
+    detail
+  });
+}
+
 function handleIncoming(raw: unknown): void {
   if (typeof raw !== "object" || raw === null || typeof (raw as { type?: unknown }).type !== "string") {
     log("[ext] ignoring malformed message.");
@@ -88,6 +109,7 @@ function handleIncoming(raw: unknown): void {
   }
 
   const message = raw as IncomingMessage;
+  relay(message as unknown as Record<string, unknown>);
 
   switch (message.type) {
     case "status":
@@ -135,6 +157,7 @@ wsServer.on("connection", (socket, request) => {
   extensionSocket = socket;
   const remoteAddress = request.socket.remoteAddress ?? "unknown";
   log(`[bridge] extension connected from ${remoteAddress}`);
+  relayStatus("connected", `Extension socket connected from ${remoteAddress}.`);
   printPrompt();
 
   heartbeatTimer = setInterval(() => {
@@ -166,6 +189,7 @@ wsServer.on("connection", (socket, request) => {
       extensionSocket = null;
     }
     log("[bridge] extension disconnected.");
+    relayStatus("disconnected", "Extension socket disconnected.");
     printPrompt();
   });
 
@@ -177,11 +201,40 @@ wsServer.on("connection", (socket, request) => {
 
 wsServer.on("error", (error: NodeJS.ErrnoException) => {
   if (error.code === "EADDRINUSE") {
-    log(`[bridge] port ${PORT} is already in use. Stop the other test harness and retry.`);
+    log(`[bridge] port ${EXTENSION_PORT} is already in use. Stop the other test harness and retry.`);
     process.exit(1);
   }
 
   log(`[bridge] server error: ${error.message}`);
+  process.exit(1);
+});
+
+relayServer.on("connection", (socket) => {
+  relayClients.add(socket);
+  socket.send(
+    JSON.stringify({
+      type: "status",
+      status: extensionSocket?.readyState === WebSocket.OPEN ? "connected" : "disconnected",
+      detail: "Attached to move-harness relay stream."
+    })
+  );
+
+  socket.on("close", () => {
+    relayClients.delete(socket);
+  });
+
+  socket.on("error", () => {
+    relayClients.delete(socket);
+  });
+});
+
+relayServer.on("error", (error: NodeJS.ErrnoException) => {
+  if (error.code === "EADDRINUSE") {
+    log(`[relay] port ${RELAY_PORT} is already in use. Stop the other relay consumer and retry.`);
+    process.exit(1);
+  }
+
+  log(`[relay] server error: ${error.message}`);
   process.exit(1);
 });
 
@@ -247,12 +300,26 @@ function shutdown(): void {
   if (extensionSocket && extensionSocket.readyState === WebSocket.OPEN) {
     extensionSocket.close();
   }
-  wsServer.close(() => {
-    process.exit(0);
-  });
+  for (const client of relayClients) {
+    if (client.readyState === WebSocket.OPEN || client.readyState === WebSocket.CONNECTING) {
+      client.close();
+    }
+  }
+
+  let serversLeft = 2;
+  const onServerClosed = () => {
+    serversLeft -= 1;
+    if (serversLeft <= 0) {
+      process.exit(0);
+    }
+  };
+
+  wsServer.close(onServerClosed);
+  relayServer.close(onServerClosed);
 }
 
 log("Chess TUI move-only harness");
-log(`Waiting for extension WebSocket on ws://127.0.0.1:${PORT}`);
+log(`Waiting for extension WebSocket on ws://127.0.0.1:${EXTENSION_PORT}`);
+log(`Relay stream for telemetry on ws://127.0.0.1:${RELAY_PORT}`);
 log("Type 'help' for commands.");
 printPrompt();
