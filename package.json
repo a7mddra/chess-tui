@@ -10,11 +10,14 @@
     "build:ext": "npm run build --workspace @chess-tui/ext",
     "dev:ext": "npm run dev --workspace @chess-tui/ext",
     "typecheck:ext": "npm run typecheck --workspace @chess-tui/ext",
-    "test:program": "tsx tests/program.test.ts"
+    "sanitize:fixture": "scripts/sanitize-fixture.sh",
+    "test:move-bridge": "tsx tests/terminal-move-bridge.test.ts",
+    "test:live-telemetry": "tsx tests/live-telemetry.test.ts"
   },
   "devDependencies": {
     "@types/chrome": "^0.1.21",
     "@types/node": "^22.13.11",
+    "@types/ws": "^8.18.1",
     "esbuild": "^0.25.0",
     "tsx": "^4.20.5",
     "typescript": "^5.8.2",

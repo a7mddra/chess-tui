@@ -29,6 +29,10 @@ export type WsOutboundMessage =
       fen: string;
     }
   | {
+      type: "game-state";
+      snapshot: GameClockSnapshot;
+    }
+  | {
       type: "pong";
       requestId?: string;
       ts: number;
@@ -51,16 +55,39 @@ export interface ApplyMoveResponse {
   error?: string;
 }
 
+export type PlayerClockSnapshot = {
+  username: string | null;
+  nationality: string | null;
+  elo: number | null;
+  clockText: string | null;
+  clockMs: number | null;
+  isTurn: boolean;
+  placement: "top" | "bottom";
+};
+
+export type GameClockSnapshot = {
+  takenAt: number;
+  fen: string | null;
+  user: PlayerClockSnapshot;
+  opponent: PlayerClockSnapshot;
+};
+
 export type ContentToBackgroundMessage =
   | {
       type: "TAB_READY";
       href: string;
       fen?: string;
+      snapshot?: GameClockSnapshot;
     }
   | {
       type: "FEN_UPDATE";
       fen: string;
+      snapshot?: GameClockSnapshot;
     };
+
+export type ContentHealthcheckMessage = {
+  type: "HEALTHCHECK";
+};
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -74,6 +101,10 @@ function asRecord(value: unknown): UnknownRecord | null {
 
 function asOptionalString(value: unknown): string | undefined {
   return typeof value === "string" ? value : undefined;
+}
+
+function asOptionalNumber(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
 
 export function parseWsInbound(value: unknown): WsInboundMessage | null {
@@ -127,15 +158,58 @@ export function isContentToBackgroundMessage(
   }
 
   if (data.type === "TAB_READY") {
-    return (
+    const hasBaseFields =
       typeof data.href === "string" &&
-      (typeof data.fen === "string" || typeof data.fen === "undefined")
-    );
+      (typeof data.fen === "string" || typeof data.fen === "undefined");
+    if (!hasBaseFields) {
+      return false;
+    }
+
+    return typeof data.snapshot === "undefined" || isGameClockSnapshot(data.snapshot);
   }
 
   if (data.type === "FEN_UPDATE") {
-    return typeof data.fen === "string";
+    if (typeof data.fen !== "string") {
+      return false;
+    }
+
+    return typeof data.snapshot === "undefined" || isGameClockSnapshot(data.snapshot);
   }
 
   return false;
+}
+
+function isPlayerPlacement(value: unknown): value is "top" | "bottom" {
+  return value === "top" || value === "bottom";
+}
+
+export function isPlayerClockSnapshot(value: unknown): value is PlayerClockSnapshot {
+  const data = asRecord(value);
+  if (!data) {
+    return false;
+  }
+
+  return (
+    (typeof data.username === "string" || data.username === null) &&
+    (typeof data.nationality === "string" || data.nationality === null) &&
+    (typeof data.elo === "number" || data.elo === null) &&
+    (typeof data.clockText === "string" || data.clockText === null) &&
+    (typeof data.clockMs === "number" || data.clockMs === null) &&
+    typeof data.isTurn === "boolean" &&
+    isPlayerPlacement(data.placement)
+  );
+}
+
+export function isGameClockSnapshot(value: unknown): value is GameClockSnapshot {
+  const data = asRecord(value);
+  if (!data) {
+    return false;
+  }
+
+  return (
+    asOptionalNumber(data.takenAt) !== undefined &&
+    (typeof data.fen === "string" || data.fen === null) &&
+    isPlayerClockSnapshot(data.user) &&
+    isPlayerClockSnapshot(data.opponent)
+  );
 }

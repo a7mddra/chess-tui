@@ -234,6 +234,13 @@ chrome.runtime.onMessage.addListener((message: unknown, sender) => {
       });
     }
 
+    if (message.snapshot) {
+      sendToSocket({
+        type: "game-state",
+        snapshot: message.snapshot
+      });
+    }
+
     return;
   }
 
@@ -242,6 +249,13 @@ chrome.runtime.onMessage.addListener((message: unknown, sender) => {
       type: "fen",
       fen: message.fen
     });
+
+    if (message.snapshot) {
+      sendToSocket({
+        type: "game-state",
+        snapshot: message.snapshot
+      });
+    }
   }
 });
 

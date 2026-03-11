@@ -175,6 +175,16 @@ wsServer.on("connection", (socket, request) => {
   });
 });
 
+wsServer.on("error", (error: NodeJS.ErrnoException) => {
+  if (error.code === "EADDRINUSE") {
+    log(`[bridge] port ${PORT} is already in use. Stop the other test harness and retry.`);
+    process.exit(1);
+  }
+
+  log(`[bridge] server error: ${error.message}`);
+  process.exit(1);
+});
+
 terminal.on("line", (line) => {
   const input = line.trim().toLowerCase();
 
@@ -242,7 +252,7 @@ function shutdown(): void {
   });
 }
 
-log("Chess TUI extension harness");
+log("Chess TUI move-only harness");
 log(`Waiting for extension WebSocket on ws://127.0.0.1:${PORT}`);
 log("Type 'help' for commands.");
 printPrompt();

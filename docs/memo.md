@@ -10,9 +10,14 @@
 
 ## cli Roadmap
 1. Introduction to Ink and state-machine foundation.
-2. Online production face of `tests/program.test.ts`.
+2. Online production face of `tests/terminal-move-bridge.test.ts`.
 3. Separate offline mode using `npm install stockfish` and `chess.js`.
 
 ## Current Focus
-- `ext` + `tests/program.test.ts`.
+- `ext` + `tests/terminal-move-bridge.test.ts`.
 - Terminal input like `e2e4` should affect the Chess.com board instantly.
+
+## Planning Docs
+- `docs/roadmap.md`
+- `docs/state-machine.md`
+- `docs/ext-bridge-contract-v0.md`

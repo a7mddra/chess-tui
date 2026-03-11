@@ -1,5 +1,7 @@
 import {
+  isGameClockSnapshot,
   isApplyMoveCommand,
+  type GameClockSnapshot,
   type ApplyMoveResponse
 } from "./protocol";
 
@@ -63,11 +65,12 @@ function handleMoveTimeout(requestId: string): void {
   });
 }
 
-function notifyBackgroundReady(fen?: string): void {
+function notifyBackgroundReady(fen?: string, snapshot?: GameClockSnapshot): void {
   void chrome.runtime.sendMessage({
     type: "TAB_READY",
     href: window.location.href,
-    fen
+    fen,
+    snapshot
   });
 }
 
@@ -130,15 +133,18 @@ window.addEventListener("message", (event) => {
   }
 
   if (data.type === "FEN_UPDATE" && typeof data.fen === "string") {
+    const snapshot = isGameClockSnapshot(data.snapshot) ? data.snapshot : undefined;
     void chrome.runtime.sendMessage({
       type: "FEN_UPDATE",
-      fen: data.fen
+      fen: data.fen,
+      snapshot
     });
     return;
   }
 
   if (data.type === "BRIDGE_READY") {
-    notifyBackgroundReady(typeof data.fen === "string" ? data.fen : undefined);
+    const snapshot = isGameClockSnapshot(data.snapshot) ? data.snapshot : undefined;
+    notifyBackgroundReady(typeof data.fen === "string" ? data.fen : undefined, snapshot);
   }
 });
 
