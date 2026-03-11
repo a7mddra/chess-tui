@@ -1,0 +1,11 @@
+{
+  "name": "@chess-tui/ext",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Chrome extension bridge for chess-tui.",
+  "scripts": {
+    "build": "node ./scripts/build.mjs",
+    "dev": "node ./scripts/build.mjs --watch",
+    "typecheck": "tsc --project ./tsconfig.json --noEmit"
+  }
+}

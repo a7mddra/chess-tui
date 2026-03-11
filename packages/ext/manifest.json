@@ -1,0 +1,41 @@
+{
+  "manifest_version": 3,
+  "name": "Chess TUI Bridge",
+  "version": "0.1.0",
+  "description": "Bridge chess.com board actions with a local chess-tui process.",
+  "permissions": [
+    "tabs"
+  ],
+  "host_permissions": [
+    "*://*.chess.com/*",
+    "ws://127.0.0.1/*",
+    "ws://localhost/*"
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; connect-src 'self' ws://127.0.0.1:* ws://localhost:*;"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.chess.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "page-bridge.js"
+      ],
+      "matches": [
+        "*://*.chess.com/*"
+      ]
+    }
+  ]
+}

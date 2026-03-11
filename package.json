@@ -1,0 +1,23 @@
+{
+  "name": "chess-tui",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Monorepo for chess-tui CLI and Chrome extension bridge.",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build:ext": "npm run build --workspace @chess-tui/ext",
+    "dev:ext": "npm run dev --workspace @chess-tui/ext",
+    "typecheck:ext": "npm run typecheck --workspace @chess-tui/ext",
+    "test:program": "tsx tests/program.test.ts"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.1.21",
+    "@types/node": "^22.13.11",
+    "esbuild": "^0.25.0",
+    "tsx": "^4.20.5",
+    "typescript": "^5.8.2",
+    "ws": "^8.18.1"
+  }
+}
