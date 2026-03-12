@@ -1,18 +1,18 @@
-import React, {Fragment, type ReactNode, useEffect, useMemo, useState} from "react";
+import React, {Fragment, type ReactNode, useMemo, useState} from "react";
 import {Box, Text, useApp, useInput, useStdout} from "ink";
-import {openExternalUrl} from "../../platform/open-url.js";
+import {openExternalUrl, github} from "@/lib";
 
-const GITHUB_REPO_URL = "https://github.com/a7mddra/chess-tui.git";
 const CURSOR_GLYPH = "➣";
 const MIN_INNER_FRAME_WIDTH = 67;
 
-const LOGO_LINES = [
-  " ██████╗██╗  ██╗███████╗███████╗███████╗                 ",
-  "██╔════╝██║  ██║██╔════╝██╔════╝██╔════╝                 ",
-  "██║     ███████║█████╗  ███████╗███████╗██████╗██╗ ██╗██╗",
-  "██║     ██╔══██║██╔══╝  ╚════██║╚════██║╚═██╔═╝██║ ██║██║",
-  "╚██████╗██║  ██║███████╗███████║███████║  ██║  ██████║██║",
-  " ╚═════╝╚═╝  ╚═╝╚══════╝╚══════╝╚══════╝  ╚═╝  ╚═════╝╚═╝"
+ const LOGO_LINES = [
+"    ██╗                                                         ",
+"   ████ ██████╗██╗  ██╗███████╗███████╗███████╗                 ",
+"   ╚██ ██╔════╝██║  ██║██╔════╝██╔════╝██╔════╝                 ",
+"    ██ ██║     ███████║█████╗  ███████╗███████╗██████╗██╗ ██╗██╗",
+"   ███ ██║     ██╔══██║██╔══╝  ╚════██║╚════██║╚═██╔═╝██║ ██║██║",
+" ███████ █████╗██║  ██║███████╗███████║███████║  ██║  ██████║██║",
+" ╚══════ ╚════╝╚═╝  ╚═╝╚══════╝╚══════╝╚══════╝  ╚═╝  ╚═════╝╚═╝"
 ] as const;
 
 const LOGO_GRADIENT = [
@@ -23,8 +23,69 @@ const LOGO_GRADIENT = [
   "#d7d7d7",
   "#cdcdcd"
 ] as const;
-const ACCENT_GRADIENT = ["#5d9948", "#6ca54a", "#b2e068"] as const;
-const ACCENT_ANIMATION_MS = 1400;
+
+type LogoColorOverride = {
+  line: number;
+  start: number;
+  end: number;
+  color: string;
+};
+
+const LOGO_COLOR_OVERRIDES: readonly LogoColorOverride[] = [
+  {line: 1, start: 4, end: 5, color: "#b3e069"},
+  {line: 2, start: 3, end: 6, color: "#81b64c"},
+  {line: 3, start: 4, end: 5, color: "#81b64c"},
+  {line: 4, start: 4, end: 5, color: "#81b64c"},
+  {line: 5, start: 3, end: 5, color: "#81b64c"},
+  {line: 6, start: 1, end: 4, color: "#81b64c"},
+  {line: 1, start: 6, end: 6, color: "#5e9949"},
+  {line: 3, start: 3, end: 3, color: "#5e9949"},
+  {line: 6, start: 4, end: 7, color: "#5e9949"},
+  {line: 7, start: 0, end: 7, color: "#5e9949"}
+] as const;
+
+const getLogoBaseColor = (lineIndex: number): string =>
+  LOGO_GRADIENT[Math.min(lineIndex, LOGO_GRADIENT.length - 1)] ?? LOGO_GRADIENT[0];
+
+const getLogoCharColor = (lineIndex: number, charIndex: number): string => {
+  let color = getLogoBaseColor(lineIndex);
+
+  for (const override of LOGO_COLOR_OVERRIDES) {
+    if (
+      override.line === lineIndex + 1 &&
+      charIndex >= override.start &&
+      charIndex <= override.end
+    ) {
+      color = override.color;
+    }
+  }
+
+  return color;
+};
+
+const renderLogoLine = (line: string, lineIndex: number): ReactNode => {
+  const chars = [...line];
+  const segments: Array<{text: string; color: string}> = [];
+
+  chars.forEach((char, charIndex) => {
+    const color = getLogoCharColor(lineIndex, charIndex);
+    const previousSegment = segments[segments.length - 1];
+
+    if (previousSegment && previousSegment.color === color) {
+      previousSegment.text += char;
+      return;
+    }
+
+    segments.push({text: char, color});
+  });
+
+  return segments.map((segment, segmentIndex) => (
+    <Text color={segment.color} key={`logo-${lineIndex}-${segmentIndex}`}>
+      {segment.text}
+    </Text>
+  ));
+};
+
 const ACCENT_COLOR = "#b2e068";
 
 const MENU_ITEMS = [
@@ -43,54 +104,6 @@ const padCentered = (contentWidth: number, totalWidth: number): {left: number; r
   const right = Math.max(0, totalWidth - safeContentWidth - left);
 
   return {left, right};
-};
-
-const hexToRgb = (hex: string): {r: number; g: number; b: number} => {
-  const normalized = hex.replace("#", "");
-
-  return {
-    r: Number.parseInt(normalized.slice(0, 2), 16),
-    g: Number.parseInt(normalized.slice(2, 4), 16),
-    b: Number.parseInt(normalized.slice(4, 6), 16)
-  };
-};
-
-const rgbToHex = ({r, g, b}: {r: number; g: number; b: number}): string => {
-  const toHex = (value: number): string => value.toString(16).padStart(2, "0");
-  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
-};
-
-const interpolateHex = (fromHex: string, toHex: string, progress: number): string => {
-  const from = hexToRgb(fromHex);
-  const to = hexToRgb(toHex);
-
-  const mix = (start: number, end: number): number =>
-    Math.round(start + (end - start) * progress);
-
-  return rgbToHex({
-    r: mix(from.r, to.r),
-    g: mix(from.g, to.g),
-    b: mix(from.b, to.b)
-  });
-};
-
-const gradientColorAt = (stops: readonly string[], progress: number): string => {
-  if (progress <= 0) {
-    return stops[0] ?? "#ffffff";
-  }
-
-  if (progress >= 1) {
-    return stops[stops.length - 1] ?? "#ffffff";
-  }
-
-  const segments = stops.length - 1;
-  const scaled = progress * segments;
-  const index = Math.min(segments - 1, Math.floor(scaled));
-  const localProgress = scaled - index;
-  const from = stops[index] ?? stops[0] ?? "#ffffff";
-  const to = stops[index + 1] ?? stops[stops.length - 1] ?? "#ffffff";
-
-  return interpolateHex(from, to, localProgress);
 };
 
 type FrameLineProps = {
@@ -113,7 +126,7 @@ const FrameLine = ({contentWidth, innerWidth, children}: FrameLineProps): React.
   );
 };
 
-const renderMenuLabel = (itemId: string, label: string, accentColor: string): ReactNode => {
+const renderMenuLabel = (itemId: string, label: string): ReactNode => {
   if (itemId !== "chesscom") {
     return label;
   }
@@ -132,23 +145,6 @@ export const WelcomeScreen = (): React.JSX.Element => {
   const columns = stdout.columns ?? 80;
   const rows = stdout.rows ?? 24;
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [accentPhase, setAccentPhase] = useState(0);
-
-  useEffect(() => {
-    let startMs = Date.now();
-
-    const timer = setInterval(() => {
-      const elapsed = Date.now() - startMs;
-      const loop = (elapsed % ACCENT_ANIMATION_MS) / ACCENT_ANIMATION_MS;
-      const pingPong = loop < 0.5 ? loop * 2 : (1 - loop) * 2;
-      setAccentPhase(pingPong);
-    }, 75);
-
-    return () => {
-      clearInterval(timer);
-      startMs = 0;
-    };
-  }, []);
 
   const longestLogoLine = useMemo(
     () => LOGO_LINES.reduce((max, line) => Math.max(max, textWidth(line)), 0),
@@ -176,7 +172,6 @@ export const WelcomeScreen = (): React.JSX.Element => {
 
   const maxInnerWidth = Math.max(20, columns - 2);
   const innerWidth = Math.min(desiredInnerWidth, maxInnerWidth);
-  const accentColor = gradientColorAt(ACCENT_GRADIENT, accentPhase);
   const cursorColumn = Math.max(0, Math.floor((innerWidth - longestMenuLabel) / 2) - 2);
 
   useInput((input, key) => {
@@ -205,7 +200,7 @@ export const WelcomeScreen = (): React.JSX.Element => {
     }
 
     if (selectedItem.id === "github") {
-      void openExternalUrl(GITHUB_REPO_URL);
+      void openExternalUrl(github.repo);
     }
       else if (selectedItem.id === "exit") {
         exit();
@@ -220,7 +215,7 @@ export const WelcomeScreen = (): React.JSX.Element => {
 
         {LOGO_LINES.map((line, index) => (
           <FrameLine contentWidth={textWidth(line)} innerWidth={innerWidth} key={`logo-${index}`}>
-            <Text color={LOGO_GRADIENT[index]}>{line}</Text>
+            {renderLogoLine(line, index)}
           </FrameLine>
         ))}
 
@@ -238,7 +233,7 @@ export const WelcomeScreen = (): React.JSX.Element => {
           );
           const isFirstOption = item.id === "chesscom";
           const menuLabel = isFirstOption
-            ? renderMenuLabel(item.id, item.label, accentColor)
+            ? renderMenuLabel(item.id, item.label)
             : isSelected
               ? <Text color={ACCENT_COLOR}>{item.label}</Text>
               : item.label;
@@ -246,7 +241,7 @@ export const WelcomeScreen = (): React.JSX.Element => {
           return (
             <FrameLine contentWidth={innerWidth} innerWidth={innerWidth} key={item.id}>
               {spaces(cursorColumn)}
-              {isSelected ? <Text color={accentColor}>{CURSOR_GLYPH}</Text> : " "}
+              {isSelected ? <Text color={ACCENT_COLOR}>{CURSOR_GLYPH}</Text> : " "}
               {spaces(gapBeforeLabel)}
               {menuLabel}
               {spaces(rightPadding)}

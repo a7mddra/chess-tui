@@ -1,5 +1,4 @@
-import React from "react";
 import {render} from "ink";
-import {WelcomeScreen} from "./features/welcome/welcome-screen.js";
+import {WelcomeScreen} from "@/screens";
 
 render(<WelcomeScreen />, {exitOnCtrlC: false});
