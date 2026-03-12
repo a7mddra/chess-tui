@@ -2,8 +2,20 @@
   "name": "@chess-tui/tui",
   "private": true,
   "version": "0.1.0",
+  "type": "module",
   "description": "A terminal user interface for chess games.",
+  "scripts": {
+    "dev": "tsx src/main.tsx",
+    "start": "tsx src/main.tsx",
+    "typecheck": "tsc --project ./tsconfig.json --noEmit"
+  },
   "dependencies": {
-    "@opentui/core": "^0.1.87"
+    "@opentui/core": "^0.1.87",
+    "ink": "^6.8.0",
+    "react": "^19.2.4"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.14",
+    "react-devtools-core": "^6.1.2"
   }
 }

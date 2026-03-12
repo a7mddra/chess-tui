@@ -9,7 +9,10 @@
   "scripts": {
     "build:ext": "npm run build --workspace @chess-tui/ext",
     "dev:ext": "npm run dev --workspace @chess-tui/ext",
+    "dev:tui": "npm run dev --workspace @chess-tui/tui",
+    "start:tui": "npm run start --workspace @chess-tui/tui",
     "typecheck:ext": "npm run typecheck --workspace @chess-tui/ext",
+    "typecheck:tui": "npm run typecheck --workspace @chess-tui/tui",
     "sanitize:fixture": "scripts/sanitize-fixture.sh",
     "test:move-bridge": "tsx tests/terminal-move-bridge.test.ts",
     "test:live-telemetry": "tsx tests/live-telemetry.test.ts"
