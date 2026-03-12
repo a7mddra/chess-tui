@@ -2,5 +2,8 @@
   "name": "@chess-tui/tui",
   "private": true,
   "version": "0.1.0",
-  "description": "A terminal user interface for chess games."
+  "description": "A terminal user interface for chess games.",
+  "dependencies": {
+    "@opentui/core": "^0.1.87"
+  }
 }
