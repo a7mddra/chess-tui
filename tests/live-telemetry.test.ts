@@ -93,7 +93,7 @@ function drawWatcherScreen(): void {
   const now = Date.now();
 
   process.stdout.write("\x1Bc");
-  process.stdout.write("Chess.com Clock Watcher (shared relay mode)\n");
+  process.stdout.write("Chess.com Watcher (shared relay mode)\n");
   process.stdout.write(`Relay: ${relayStatus}\n`);
   process.stdout.write(`Extension: ${extensionStatus}\n`);
   process.stdout.write(`Socket: ${lastSocketEvent}\n`);
