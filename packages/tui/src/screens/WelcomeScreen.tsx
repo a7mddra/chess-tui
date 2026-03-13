@@ -1,7 +1,7 @@
 import React, { Fragment, type ReactNode, useMemo, useState } from "react";
 import { Box, Text, useApp, useInput, useStdout } from "ink";
-import { openExternalUrl, github } from "@/lib";
 import { useRouter } from "@/router/AppRouter";
+import { openExternalUrl, github } from "@/lib";
 
 const CURSOR_GLYPH = "➣";
 const MIN_INNER_FRAME_WIDTH = 67;

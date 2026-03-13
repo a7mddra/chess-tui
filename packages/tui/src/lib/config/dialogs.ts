@@ -91,6 +91,11 @@ export const DIALOG_ERROR = d("error", [
   "Please try again.",
 ]);
 
+export const DIALOG_INVALID_INPUT = d("invalid_input", [
+  "Invalid input.",
+  "Type e2e4 or / for commands.",
+]);
+
 // -- Browser / external game -----------------------------------------------
 
 export const DIALOG_BROWSER_START = d("browser_start", [

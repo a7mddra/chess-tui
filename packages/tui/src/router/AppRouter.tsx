@@ -1,6 +1,5 @@
 import React, { createContext, useCallback, useContext, useState } from "react";
-import { WelcomeScreen } from "@/screens/WelcomeScreen";
-import { GameScreen } from "@/screens/GameScreen";
+import { WelcomeScreen, GameScreen } from "@/index";
 
 // ---------------------------------------------------------------------------
 // Route types

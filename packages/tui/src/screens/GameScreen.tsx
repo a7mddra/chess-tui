@@ -2,9 +2,9 @@ import React, { useState, useRef, useCallback, useEffect } from "react";
 import { Box, Text, useApp, useInput, useStdout } from "ink";
 import type { ChildProcess } from "node:child_process";
 import { useRouter, type GameMode } from "@/router/AppRouter";
-import { Board } from "@/features/board/Board";
-import { spawnBoardWindow } from "@/lib/helpers/spawn-terminal";
-import { DIALOG_HOWTO } from "@/lib/config/dialogs";
+import { Board, InputBox } from "@/features";
+import { HighlightBox } from "@/components";
+import { spawnBoardWindow, DIALOG_HOWTO } from "@/lib";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -72,80 +72,6 @@ const PlayerInfo = ({
     </Text>
   </Box>
 );
-
-// ---------------------------------------------------------------------------
-// Highlighted footer box
-// ---------------------------------------------------------------------------
-
-type HighlightBoxProps = {
-  label: string | string[];
-  width: number;
-  height: number;
-  align?: "center" | "left";
-  paddingX?: number;
-  paddingY?: number;
-  padding?: number;
-  paddingLeft?: number;
-  paddingRight?: number;
-  paddingTop?: number;
-  paddingBottom?: number;
-};
-
-const HighlightBox = ({
-  label,
-  width,
-  height,
-  align = "center",
-  paddingX,
-  paddingY,
-  padding,
-  paddingLeft,
-  paddingRight,
-  paddingTop,
-  paddingBottom,
-}: HighlightBoxProps): React.JSX.Element => {
-  const lines = Array.isArray(label) ? label : [label];
-  const startIdx = Math.max(0, Math.floor((height - lines.length) / 2));
-
-  return (
-    <Box
-      flexDirection="column"
-      width={width}
-      paddingX={paddingX}
-      paddingY={paddingY}
-      padding={padding}
-      paddingLeft={paddingLeft}
-      paddingRight={paddingRight}
-      paddingTop={paddingTop}
-      paddingBottom={paddingBottom}
-    >
-      {Array.from({ length: height }, (_, i) => {
-        let line = " ".repeat(width);
-
-        if (i >= startIdx && i < startIdx + lines.length) {
-          const text = lines[i - startIdx] || "";
-          if (align === "center") {
-            const pad = Math.max(0, Math.floor((width - text.length) / 2));
-            line =
-              " ".repeat(pad) +
-              text +
-              " ".repeat(Math.max(0, width - pad - text.length));
-          } else if (align === "left") {
-            // Add 1 space of padding for visual balance when left aligned
-            line =
-              " " + text + " ".repeat(Math.max(0, width - text.length - 1));
-          }
-        }
-
-        return (
-          <Text key={`hl-${i}`} backgroundColor={DIM_BG} color="#666666">
-            {line.slice(0, width)}
-          </Text>
-        );
-      })}
-    </Box>
-  );
-};
 
 // ---------------------------------------------------------------------------
 // DVD-bounce animation (for detached state)
@@ -222,6 +148,7 @@ export const GameScreen = ({
   const panelWidth = columns - boardWidth;
 
   const [detached, setDetached] = useState(false);
+  const [dialogLines, setDialogLines] = useState<string[]>(DIALOG_HOWTO.lines);
   const childRef = useRef<ChildProcess | null>(null);
 
   const toggleDetach = useCallback(() => {
@@ -287,19 +214,12 @@ export const GameScreen = ({
         <Box flexDirection="column" alignItems="center">
           <Box height={1} />
           <HighlightBox
-            label={DIALOG_HOWTO.lines}
+            label={dialogLines}
             width={panelWidth - 4}
             height={6}
             align="left"
           />
-          <Text color={DIM_BG}>{"▄".repeat(Math.max(0, panelWidth - 4))}</Text>
-          <HighlightBox
-            label="Play a move"
-            width={panelWidth - 4}
-            height={1}
-            align="left"
-          />
-          <Text color={DIM_BG}>{"▀".repeat(Math.max(0, panelWidth - 4))}</Text>
+          <InputBox width={panelWidth - 4} onDialogChange={setDialogLines} />
         </Box>
       </Box>
 
