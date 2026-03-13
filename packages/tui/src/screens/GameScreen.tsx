@@ -1,6 +1,7 @@
 import React from "react";
 import { Box, Text, useApp, useInput, useStdout } from "ink";
 import { useRouter, type GameMode } from "@/router/AppRouter";
+import { Board } from "@/features/board/Board";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -10,7 +11,7 @@ const ACCENT = "#b2e068";
 const DIM_BG = "#2a2a2a";
 const BORDER_COLOR = "#555555";
 
-const BOARD_WIDTH = 43;
+const BOARD_WIDTH = 36;
 
 // ---------------------------------------------------------------------------
 // Mock data
@@ -149,7 +150,7 @@ export const GameScreen = ({
           justifyContent="center"
           alignItems="center"
         >
-          <Text color="#666666">Board</Text>
+          <Board />
         </Box>
 
         {/* ── Info panel ──────────────────────────── */}
