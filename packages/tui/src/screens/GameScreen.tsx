@@ -1,9 +1,10 @@
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import { Box, Text, useApp, useInput, useStdout } from "ink";
 import type { ChildProcess } from "node:child_process";
 import { useRouter, type GameMode } from "@/router/AppRouter";
 import { Board } from "@/features/board/Board";
 import { spawnBoardWindow } from "@/lib/helpers/spawn-terminal";
+import { DIALOG_HOWTO } from "@/lib/config/dialogs";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -77,34 +78,127 @@ const PlayerInfo = ({
 // ---------------------------------------------------------------------------
 
 type HighlightBoxProps = {
-  label: string;
+  label: string | string[];
   width: number;
   height: number;
+  align?: "center" | "left";
+  paddingX?: number;
+  paddingY?: number;
+  padding?: number;
+  paddingLeft?: number;
+  paddingRight?: number;
+  paddingTop?: number;
+  paddingBottom?: number;
 };
 
 const HighlightBox = ({
   label,
   width,
   height,
-}: HighlightBoxProps): React.JSX.Element => (
-  <Box flexDirection="column" width={width}>
-    {Array.from({ length: height }, (_, i) => {
-      const isCenter = i === Math.floor(height / 2);
-      const pad = Math.max(0, Math.floor((width - label.length) / 2));
-      const line = isCenter
-        ? " ".repeat(pad) +
-          label +
-          " ".repeat(Math.max(0, width - pad - label.length))
-        : " ".repeat(width);
+  align = "center",
+  paddingX,
+  paddingY,
+  padding,
+  paddingLeft,
+  paddingRight,
+  paddingTop,
+  paddingBottom,
+}: HighlightBoxProps): React.JSX.Element => {
+  const lines = Array.isArray(label) ? label : [label];
+  const startIdx = Math.max(0, Math.floor((height - lines.length) / 2));
 
-      return (
-        <Text key={`hl-${i}`} backgroundColor={DIM_BG} color="#666666">
-          {line}
-        </Text>
-      );
-    })}
-  </Box>
-);
+  return (
+    <Box
+      flexDirection="column"
+      width={width}
+      paddingX={paddingX}
+      paddingY={paddingY}
+      padding={padding}
+      paddingLeft={paddingLeft}
+      paddingRight={paddingRight}
+      paddingTop={paddingTop}
+      paddingBottom={paddingBottom}
+    >
+      {Array.from({ length: height }, (_, i) => {
+        let line = " ".repeat(width);
+
+        if (i >= startIdx && i < startIdx + lines.length) {
+          const text = lines[i - startIdx] || "";
+          if (align === "center") {
+            const pad = Math.max(0, Math.floor((width - text.length) / 2));
+            line =
+              " ".repeat(pad) +
+              text +
+              " ".repeat(Math.max(0, width - pad - text.length));
+          } else if (align === "left") {
+            // Add 1 space of padding for visual balance when left aligned
+            line =
+              " " + text + " ".repeat(Math.max(0, width - text.length - 1));
+          }
+        }
+
+        return (
+          <Text key={`hl-${i}`} backgroundColor={DIM_BG} color="#666666">
+            {line.slice(0, width)}
+          </Text>
+        );
+      })}
+    </Box>
+  );
+};
+
+// ---------------------------------------------------------------------------
+// DVD-bounce animation (for detached state)
+// ---------------------------------------------------------------------------
+
+const DVD_LABEL = "board detached";
+
+const DvdBounce = ({
+  width,
+  height,
+}: {
+  width: number;
+  height: number;
+}): React.JSX.Element => {
+  const [pos, setPos] = useState({ x: 0, y: 0 });
+  const vel = useRef({ dx: 1, dy: 1 });
+
+  const labelLen = DVD_LABEL.length;
+  const maxX = Math.max(0, width - labelLen);
+  const maxY = Math.max(0, height - 1);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setPos((prev) => {
+        let nx = prev.x + vel.current.dx;
+        let ny = prev.y + vel.current.dy;
+        if (nx <= 0 || nx >= maxX) vel.current.dx *= -1;
+        if (ny <= 0 || ny >= maxY) vel.current.dy *= -1;
+        nx = Math.max(0, Math.min(maxX, nx));
+        ny = Math.max(0, Math.min(maxY, ny));
+        return { x: nx, y: ny };
+      });
+    }, 350);
+    return () => clearInterval(id);
+  }, [maxX, maxY]);
+
+  return (
+    <Box width={width} height={height} flexDirection="column">
+      {Array.from({ length: height }, (_, row) => (
+        <Box key={row} width={width}>
+          {row === pos.y ? (
+            <Text>
+              {" ".repeat(pos.x)}
+              <Text color="#666666">{DVD_LABEL}</Text>
+            </Text>
+          ) : (
+            <Text> </Text>
+          )}
+        </Box>
+      ))}
+    </Box>
+  );
+};
 
 // ---------------------------------------------------------------------------
 // GameScreen
@@ -124,10 +218,8 @@ export const GameScreen = ({
   const columns = stdout.columns ?? 80;
   const rows = stdout.rows ?? 24;
 
-  const footerHeight = 3;
-  const mainHeight = Math.max(10, rows - footerHeight);
-  const boardWidth = Math.min(BOARD_WIDTH, columns - 22);
-  const panelWidth = Math.max(20, columns - boardWidth - 2);
+  const boardWidth = Math.min(BOARD_WIDTH, columns - 25);
+  const panelWidth = columns - boardWidth;
 
   const [detached, setDetached] = useState(false);
   const childRef = useRef<ChildProcess | null>(null);
@@ -176,23 +268,53 @@ export const GameScreen = ({
   });
 
   return (
-    <Box width={columns} height={rows} flexDirection="column">
-      {/* ── Main: board + panel ─────────────────────────────────────── */}
-      <Box flexDirection="row" height={mainHeight}>
-        {/* ── Board area ──────────────────────────── */}
-        <Box
-          borderStyle="round"
-          borderColor={BORDER_COLOR}
-          width={boardWidth}
-          justifyContent="center"
-          alignItems="center"
-          flexDirection="column"
-        >
+    <Box width={columns} height={rows} flexDirection="row">
+      {/* ── Left panel ──────────────────────────── */}
+      <Box
+        borderStyle="round"
+        borderColor={BORDER_COLOR}
+        width={panelWidth}
+        height={rows}
+        flexDirection="column"
+        paddingTop={1}
+      >
+        <Box flexDirection="column" flexGrow={0}>
+          <PlayerInfo {...MOCK_PLAYERS.top} />
+          <Box height={1} />
+          <PlayerInfo {...MOCK_PLAYERS.bottom} />
+        </Box>
+        <Box flexGrow={1} />
+        <Box flexDirection="column" alignItems="center">
+          <Box height={1} />
+          <HighlightBox
+            label={DIALOG_HOWTO.lines}
+            width={panelWidth - 4}
+            height={6}
+            align="left"
+          />
+          <Text color={DIM_BG}>{"▄".repeat(Math.max(0, panelWidth - 4))}</Text>
+          <HighlightBox
+            label="Play a move"
+            width={panelWidth - 4}
+            height={1}
+            align="left"
+          />
+          <Text color={DIM_BG}>{"▀".repeat(Math.max(0, panelWidth - 4))}</Text>
+        </Box>
+      </Box>
+
+      {/* ── Board area ──────────────────────────── */}
+      <Box
+        borderStyle="round"
+        borderColor={BORDER_COLOR}
+        flexGrow={1}
+        height={rows}
+        flexDirection="column"
+      >
+        {/* content area */}
+        <Box flexGrow={1} justifyContent="center" alignItems="center">
           {detached ? (
-            <>
-              <Text color="#666666">board detached</Text>
-              <Text color={ACCENT}> ↺ Ctrl+D to restore </Text>
-            </>
+            <DvdBounce width={boardWidth - 2} height={rows - 4} />
           ) : (
             <>
               <Box position="absolute" marginLeft={1} marginTop={0}>
@@ -202,39 +324,12 @@ export const GameScreen = ({
             </>
           )}
         </Box>
-
-        {/* ── Info panel ──────────────────────────── */}
-        <Box
-          borderStyle="round"
-          borderColor={BORDER_COLOR}
-          flexGrow={1}
-          flexDirection="column"
-          justifyContent="space-between"
-          paddingY={1}
-        >
-          <PlayerInfo {...MOCK_PLAYERS.top} />
-          <PlayerInfo {...MOCK_PLAYERS.bottom} />
+        {/* footer hint */}
+        <Box paddingX={1}>
+          <Text color={BORDER_COLOR}>
+            {detached ? "Ctrl+D: restore board" : "Ctrl+D: detach board"}
+          </Text>
         </Box>
-      </Box>
-
-      {/* ── Footer ───────────────────── */}
-      <Box
-        flexDirection="row"
-        paddingX={1}
-        paddingBottom={1}
-        height={footerHeight + 1}
-      >
-        <HighlightBox
-          label="Input"
-          width={panelWidth}
-          height={footerHeight + 1}
-        />
-        <Box width={1} />
-        <HighlightBox
-          label="Commands"
-          width={boardWidth - 1}
-          height={footerHeight + 1}
-        />
       </Box>
     </Box>
   );
