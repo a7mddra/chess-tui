@@ -1,18 +1,19 @@
-import React, {Fragment, type ReactNode, useMemo, useState} from "react";
-import {Box, Text, useApp, useInput, useStdout} from "ink";
-import {openExternalUrl, github} from "@/lib";
+import React, { Fragment, type ReactNode, useMemo, useState } from "react";
+import { Box, Text, useApp, useInput, useStdout } from "ink";
+import { openExternalUrl, github } from "@/lib";
+import { useRouter } from "@/router/AppRouter";
 
 const CURSOR_GLYPH = "➣";
 const MIN_INNER_FRAME_WIDTH = 67;
 
- const LOGO_LINES = [
-"    ██╗                                                         ",
-"   ████ ██████╗██╗  ██╗███████╗███████╗███████╗                 ",
-"   ╚██ ██╔════╝██║  ██║██╔════╝██╔════╝██╔════╝                 ",
-"    ██ ██║     ███████║█████╗  ███████╗███████╗██████╗██╗ ██╗██╗",
-"   ███ ██║     ██╔══██║██╔══╝  ╚════██║╚════██║╚═██╔═╝██║ ██║██║",
-" ███████ █████╗██║  ██║███████╗███████║███████║  ██║  ██████║██║",
-" ╚══════ ╚════╝╚═╝  ╚═╝╚══════╝╚══════╝╚══════╝  ╚═╝  ╚═════╝╚═╝"
+const LOGO_LINES = [
+  "    ██╗                                                         ",
+  "   ████ ██████╗██╗  ██╗███████╗███████╗███████╗                 ",
+  "   ╚██ ██╔════╝██║  ██║██╔════╝██╔════╝██╔════╝                 ",
+  "    ██ ██║     ███████║█████╗  ███████╗███████╗██████╗██╗ ██╗██╗",
+  "   ███ ██║     ██╔══██║██╔══╝  ╚════██║╚════██║╚═██╔═╝██║ ██║██║",
+  " ███████ █████╗██║  ██║███████╗███████║███████║  ██║  ██████║██║",
+  " ╚══════ ╚════╝╚═╝  ╚═╝╚══════╝╚══════╝╚══════╝  ╚═╝  ╚═════╝╚═╝",
 ] as const;
 
 const LOGO_GRADIENT = [
@@ -21,7 +22,7 @@ const LOGO_GRADIENT = [
   "#ebebeb",
   "#e1e1e1",
   "#d7d7d7",
-  "#cdcdcd"
+  "#cdcdcd",
 ] as const;
 
 type LogoColorOverride = {
@@ -32,20 +33,21 @@ type LogoColorOverride = {
 };
 
 const LOGO_COLOR_OVERRIDES: readonly LogoColorOverride[] = [
-  {line: 1, start: 4, end: 5, color: "#b3e069"},
-  {line: 2, start: 3, end: 6, color: "#81b64c"},
-  {line: 3, start: 4, end: 5, color: "#81b64c"},
-  {line: 4, start: 4, end: 5, color: "#81b64c"},
-  {line: 5, start: 3, end: 5, color: "#81b64c"},
-  {line: 6, start: 1, end: 4, color: "#81b64c"},
-  {line: 1, start: 6, end: 6, color: "#5e9949"},
-  {line: 3, start: 3, end: 3, color: "#5e9949"},
-  {line: 6, start: 4, end: 7, color: "#5e9949"},
-  {line: 7, start: 0, end: 7, color: "#5e9949"}
+  { line: 1, start: 4, end: 5, color: "#b3e069" },
+  { line: 2, start: 3, end: 6, color: "#81b64c" },
+  { line: 3, start: 4, end: 5, color: "#81b64c" },
+  { line: 4, start: 4, end: 5, color: "#81b64c" },
+  { line: 5, start: 3, end: 5, color: "#81b64c" },
+  { line: 6, start: 1, end: 4, color: "#81b64c" },
+  { line: 1, start: 6, end: 6, color: "#5e9949" },
+  { line: 3, start: 3, end: 3, color: "#5e9949" },
+  { line: 6, start: 4, end: 7, color: "#5e9949" },
+  { line: 7, start: 0, end: 7, color: "#5e9949" },
 ] as const;
 
 const getLogoBaseColor = (lineIndex: number): string =>
-  LOGO_GRADIENT[Math.min(lineIndex, LOGO_GRADIENT.length - 1)] ?? LOGO_GRADIENT[0];
+  LOGO_GRADIENT[Math.min(lineIndex, LOGO_GRADIENT.length - 1)] ??
+  LOGO_GRADIENT[0];
 
 const getLogoCharColor = (lineIndex: number, charIndex: number): string => {
   let color = getLogoBaseColor(lineIndex);
@@ -65,7 +67,7 @@ const getLogoCharColor = (lineIndex: number, charIndex: number): string => {
 
 const renderLogoLine = (line: string, lineIndex: number): ReactNode => {
   const chars = [...line];
-  const segments: Array<{text: string; color: string}> = [];
+  const segments: Array<{ text: string; color: string }> = [];
 
   chars.forEach((char, charIndex) => {
     const color = getLogoCharColor(lineIndex, charIndex);
@@ -76,7 +78,7 @@ const renderLogoLine = (line: string, lineIndex: number): ReactNode => {
       return;
     }
 
-    segments.push({text: char, color});
+    segments.push({ text: char, color });
   });
 
   return segments.map((segment, segmentIndex) => (
@@ -89,21 +91,24 @@ const renderLogoLine = (line: string, lineIndex: number): ReactNode => {
 const ACCENT_COLOR = "#b2e068";
 
 const MENU_ITEMS = [
-  {id: "chesscom", label: "♟𝗰𝗵𝗲𝘀𝘀.com"},
-  {id: "stockfish", label: "Stockfish 18"},
-  {id: "github", label: "GitHub"},
-  {id: "exit", label: "Exit"}
+  { id: "chesscom", label: "♟𝗰𝗵𝗲𝘀𝘀.com" },
+  { id: "stockfish", label: "Stockfish 18" },
+  { id: "github", label: "GitHub" },
+  { id: "exit", label: "Exit" },
 ] as const;
 
 const textWidth = (value: string): number => [...value].length;
 const spaces = (count: number): string => " ".repeat(Math.max(0, count));
 
-const padCentered = (contentWidth: number, totalWidth: number): {left: number; right: number} => {
+const padCentered = (
+  contentWidth: number,
+  totalWidth: number,
+): { left: number; right: number } => {
   const safeContentWidth = Math.min(contentWidth, totalWidth);
   const left = Math.max(0, Math.floor((totalWidth - safeContentWidth) / 2));
   const right = Math.max(0, totalWidth - safeContentWidth - left);
 
-  return {left, right};
+  return { left, right };
 };
 
 type FrameLineProps = {
@@ -112,8 +117,12 @@ type FrameLineProps = {
   children?: ReactNode;
 };
 
-const FrameLine = ({contentWidth, innerWidth, children}: FrameLineProps): React.JSX.Element => {
-  const {left, right} = padCentered(contentWidth, innerWidth);
+const FrameLine = ({
+  contentWidth,
+  innerWidth,
+  children,
+}: FrameLineProps): React.JSX.Element => {
+  const { left, right } = padCentered(contentWidth, innerWidth);
 
   return (
     <Text>
@@ -140,15 +149,16 @@ const renderMenuLabel = (itemId: string, label: string): ReactNode => {
 };
 
 export const WelcomeScreen = (): React.JSX.Element => {
-  const {exit} = useApp();
-  const {stdout} = useStdout();
+  const { exit } = useApp();
+  const { navigate } = useRouter();
+  const { stdout } = useStdout();
   const columns = stdout.columns ?? 80;
   const rows = stdout.rows ?? 24;
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   const longestLogoLine = useMemo(
     () => LOGO_LINES.reduce((max, line) => Math.max(max, textWidth(line)), 0),
-    []
+    [],
   );
 
   const longestMenuLine = useMemo(
@@ -157,22 +167,26 @@ export const WelcomeScreen = (): React.JSX.Element => {
         const line = `${CURSOR_GLYPH} ${item.label}`;
         return Math.max(max, textWidth(line));
       }, 0),
-    []
+    [],
   );
   const longestMenuLabel = useMemo(
-    () => MENU_ITEMS.reduce((max, item) => Math.max(max, textWidth(item.label)), 0),
-    []
+    () =>
+      MENU_ITEMS.reduce((max, item) => Math.max(max, textWidth(item.label)), 0),
+    [],
   );
 
   const desiredInnerWidth = Math.max(
     MIN_INNER_FRAME_WIDTH,
     longestLogoLine + 2,
-    longestMenuLine + 2
+    longestMenuLine + 2,
   );
 
   const maxInnerWidth = Math.max(20, columns - 2);
   const innerWidth = Math.min(desiredInnerWidth, maxInnerWidth);
-  const cursorColumn = Math.max(0, Math.floor((innerWidth - longestMenuLabel) / 2) - 2);
+  const cursorColumn = Math.max(
+    0,
+    Math.floor((innerWidth - longestMenuLabel) / 2) - 2,
+  );
 
   useInput((input, key) => {
     if (key.ctrl && input.toLowerCase() === "c") {
@@ -181,12 +195,14 @@ export const WelcomeScreen = (): React.JSX.Element => {
     }
 
     if (key.upArrow) {
-      setSelectedIndex(previous => (previous - 1 + MENU_ITEMS.length) % MENU_ITEMS.length);
+      setSelectedIndex(
+        (previous) => (previous - 1 + MENU_ITEMS.length) % MENU_ITEMS.length,
+      );
       return;
     }
 
     if (key.downArrow) {
-      setSelectedIndex(previous => (previous + 1) % MENU_ITEMS.length);
+      setSelectedIndex((previous) => (previous + 1) % MENU_ITEMS.length);
       return;
     }
 
@@ -199,22 +215,34 @@ export const WelcomeScreen = (): React.JSX.Element => {
       return;
     }
 
-    if (selectedItem.id === "github") {
+    if (selectedItem.id === "chesscom") {
+      navigate("chesscom");
+    } else if (selectedItem.id === "stockfish") {
+      navigate("stockfish");
+    } else if (selectedItem.id === "github") {
       void openExternalUrl(github.repo);
+    } else if (selectedItem.id === "exit") {
+      exit();
     }
-      else if (selectedItem.id === "exit") {
-        exit();
-      }
   });
 
   return (
-    <Box width={columns} height={rows} alignItems="center" justifyContent="center">
+    <Box
+      width={columns}
+      height={rows}
+      alignItems="center"
+      justifyContent="center"
+    >
       <Box flexDirection="column">
         <Text>{"╭" + "─".repeat(innerWidth) + "╮"}</Text>
         <FrameLine contentWidth={0} innerWidth={innerWidth} />
 
         {LOGO_LINES.map((line, index) => (
-          <FrameLine contentWidth={textWidth(line)} innerWidth={innerWidth} key={`logo-${index}`}>
+          <FrameLine
+            contentWidth={textWidth(line)}
+            innerWidth={innerWidth}
+            key={`logo-${index}`}
+          >
             {renderLogoLine(line, index)}
           </FrameLine>
         ))}
@@ -225,23 +253,39 @@ export const WelcomeScreen = (): React.JSX.Element => {
         {MENU_ITEMS.map((item, index) => {
           const isSelected = selectedIndex === index;
           const labelWidth = textWidth(item.label);
-          const centeredLabelStart = Math.max(0, Math.floor((innerWidth - labelWidth) / 2));
-          const gapBeforeLabel = Math.max(1, centeredLabelStart - (cursorColumn + 1));
+          const centeredLabelStart = Math.max(
+            0,
+            Math.floor((innerWidth - labelWidth) / 2),
+          );
+          const gapBeforeLabel = Math.max(
+            1,
+            centeredLabelStart - (cursorColumn + 1),
+          );
           const rightPadding = Math.max(
             0,
-            innerWidth - (cursorColumn + 1 + gapBeforeLabel + labelWidth)
+            innerWidth - (cursorColumn + 1 + gapBeforeLabel + labelWidth),
           );
           const isFirstOption = item.id === "chesscom";
-          const menuLabel = isFirstOption
-            ? renderMenuLabel(item.id, item.label)
-            : isSelected
-              ? <Text color={ACCENT_COLOR}>{item.label}</Text>
-              : item.label;
+          const menuLabel = isFirstOption ? (
+            renderMenuLabel(item.id, item.label)
+          ) : isSelected ? (
+            <Text color={ACCENT_COLOR}>{item.label}</Text>
+          ) : (
+            item.label
+          );
 
           return (
-            <FrameLine contentWidth={innerWidth} innerWidth={innerWidth} key={item.id}>
+            <FrameLine
+              contentWidth={innerWidth}
+              innerWidth={innerWidth}
+              key={item.id}
+            >
               {spaces(cursorColumn)}
-              {isSelected ? <Text color={ACCENT_COLOR}>{CURSOR_GLYPH}</Text> : " "}
+              {isSelected ? (
+                <Text color={ACCENT_COLOR}>{CURSOR_GLYPH}</Text>
+              ) : (
+                " "
+              )}
               {spaces(gapBeforeLabel)}
               {menuLabel}
               {spaces(rightPadding)}

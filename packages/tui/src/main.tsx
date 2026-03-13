@@ -1,4 +1,4 @@
-import {render} from "ink";
-import {WelcomeScreen} from "@/screens";
+import { render } from "ink";
+import { AppRouter } from "@/router/AppRouter";
 
-render(<WelcomeScreen />, {exitOnCtrlC: false});
+render(<AppRouter />, { exitOnCtrlC: false });
