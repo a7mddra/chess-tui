@@ -1,13 +1,13 @@
-import { render, Box, Text, useApp, useInput, useStdout } from "ink";
+import { render } from "ink";
 import React, { useState } from "react";
-import { AppRouter } from "@/router/AppRouter";
+import { Box, Text, useApp, useInput, useStdout } from "ink";
 import { Board } from "@/features";
 
 // ---------------------------------------------------------------------------
 // Standalone board window — fills the terminal with just the board
 // ---------------------------------------------------------------------------
 
-const BoardScreen = (): React.JSX.Element => {
+const BoardWindow = (): React.JSX.Element => {
   const { exit } = useApp();
   const { stdout } = useStdout();
 
@@ -40,12 +40,4 @@ const BoardScreen = (): React.JSX.Element => {
   );
 };
 
-// ---------------------------------------------------------------------------
-// Main entry
-// ---------------------------------------------------------------------------
-
-if (process.argv.includes("--detached-board")) {
-  render(<BoardScreen />, { exitOnCtrlC: false });
-} else {
-  render(<AppRouter />, { exitOnCtrlC: false });
-}
+render(<BoardWindow />, { exitOnCtrlC: false });

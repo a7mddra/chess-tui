@@ -1,6 +1,5 @@
 /*
-    - /help -> show commands
-    - /refresh -> rerender terminal in case INK damaged by a window resize
+    - /help -> show shortcuts
     - /new -> start new game
     - /undo -> undo last move
     - /resign -> resign game

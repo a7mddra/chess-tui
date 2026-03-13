@@ -1,7 +1,9 @@
-import React from "react";
+import React, { useState, useRef, useCallback } from "react";
 import { Box, Text, useApp, useInput, useStdout } from "ink";
+import type { ChildProcess } from "node:child_process";
 import { useRouter, type GameMode } from "@/router/AppRouter";
 import { Board } from "@/features/board/Board";
+import { spawnBoardWindow } from "@/lib/helpers/spawn-terminal";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -127,13 +129,48 @@ export const GameScreen = ({
   const boardWidth = Math.min(BOARD_WIDTH, columns - 22);
   const panelWidth = Math.max(20, columns - boardWidth - 2);
 
+  const [detached, setDetached] = useState(false);
+  const childRef = useRef<ChildProcess | null>(null);
+
+  const toggleDetach = useCallback(() => {
+    if (detached) {
+      // Reattach — kill the detached window
+      if (childRef.current) {
+        childRef.current.kill();
+        childRef.current = null;
+      }
+      setDetached(false);
+    } else {
+      // Detach — spawn board in new terminal
+      const child = spawnBoardWindow();
+      if (child) {
+        childRef.current = child;
+        setDetached(true);
+      }
+    }
+  }, [detached]);
+
   useInput((input, key) => {
     if (key.escape) {
+      // Kill detached window on exit
+      if (childRef.current) {
+        childRef.current.kill();
+        childRef.current = null;
+      }
       navigate("welcome");
       return;
     }
 
+    if (key.ctrl && input.toLowerCase() === "d") {
+      toggleDetach();
+      return;
+    }
+
     if (key.ctrl && input.toLowerCase() === "c") {
+      if (childRef.current) {
+        childRef.current.kill();
+        childRef.current = null;
+      }
       exit();
     }
   });
@@ -142,15 +179,28 @@ export const GameScreen = ({
     <Box width={columns} height={rows} flexDirection="column">
       {/* ── Main: board + panel ─────────────────────────────────────── */}
       <Box flexDirection="row" height={mainHeight}>
-        {/* ── Board placeholder ──────────────────────────── */}
+        {/* ── Board area ──────────────────────────── */}
         <Box
           borderStyle="round"
           borderColor={BORDER_COLOR}
           width={boardWidth}
           justifyContent="center"
           alignItems="center"
+          flexDirection="column"
         >
-          <Board />
+          {detached ? (
+            <>
+              <Text color="#666666">board detached</Text>
+              <Text color={ACCENT}> ↺ Ctrl+D to restore </Text>
+            </>
+          ) : (
+            <>
+              <Box position="absolute" marginLeft={1} marginTop={0}>
+                <Text color={ACCENT}>⌞ ⌝</Text>
+              </Box>
+              <Board />
+            </>
+          )}
         </Box>
 
         {/* ── Info panel ──────────────────────────── */}
