@@ -5,17 +5,35 @@ export type Command = {
   label: string;
   /** Extra keywords for search that aren't in the label */
   keywords?: string[];
+  /** Where this command is available */
+  mode?: "all" | "online" | "offline";
 };
 
+export type CommandMode = "chesscom" | "stockfish";
+
 export const COMMANDS: Command[] = [
-  { id: "new", label: "Start new game", keywords: ["new"] },
-  { id: "undo", label: "Undo last move" },
-  { id: "resign", label: "Resign game" },
-  { id: "draw", label: "Offer draw" },
-  { id: "accept", label: "Accept draw offer" },
-  { id: "decline", label: "Decline draw offer" },
-  { id: "analyze", label: "Analyze game" },
-  { id: "flip", label: "Flip board" },
-  { id: "difficulty", label: "Set difficulty", keywords: ["level"] },
-  { id: "exit", label: "Exit program", keywords: ["quit"] },
+  { id: "new", label: "Start new game", keywords: ["new"], mode: "all" },
+  { id: "undo", label: "Undo last move", mode: "all" },
+  { id: "resign", label: "Resign game", mode: "all" },
+  { id: "draw", label: "Offer draw", mode: "online" },
+  { id: "accept", label: "Accept draw offer", mode: "online" },
+  { id: "decline", label: "Decline draw offer", mode: "online" },
+  { id: "analyze", label: "Analyze game", mode: "online" },
+  { id: "flip", label: "Flip board", mode: "offline" },
+  {
+    id: "difficulty",
+    label: "Set difficulty",
+    keywords: ["level"],
+    mode: "offline",
+  },
+  { id: "exit", label: "Exit program", keywords: ["quit"], mode: "all" },
 ];
+
+export const getCommandsForMode = (mode: CommandMode): Command[] => {
+  const target = mode === "stockfish" ? "offline" : "online";
+
+  return COMMANDS.filter((command) => {
+    const commandMode = command.mode ?? "all";
+    return commandMode === "all" || commandMode === target;
+  });
+};

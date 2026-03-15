@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Box, Text } from "ink";
 import { HighlightBox } from "@/components";
 import {
-  COMMANDS,
+  type Command,
   DIALOG_HOWTO,
   DIALOG_INVALID_INPUT,
   searchCommands,
@@ -13,26 +13,31 @@ import { InputCaret } from "./InputCaret";
 import { isValidAlgebraic } from "./validate";
 
 const DIM_BG = "#2a2a2a";
+const SHORTCUT_TIP_MARKER = "? for shortcuts";
 
 type InputBoxProps = {
   width: number;
   onDialogChange: (lines: string[]) => void;
+  commands: Command[];
 };
 
 export const InputBox = ({
   width,
   onDialogChange,
+  commands,
 }: InputBoxProps): React.JSX.Element => {
   const [value, setValue] = useState("");
   const [cursor, setCursor] = useState(0);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [errorTimer, setErrorTimer] = useState<NodeJS.Timeout | null>(null);
+  const [showingShortcuts, setShowingShortcuts] = useState(false);
   const lastDialogRef = useRef("");
 
   const isCommandMode = value.startsWith("/");
-  const filteredCommands = isCommandMode
-    ? searchCommands(value, COMMANDS)
-    : [];
+  const filteredCommands = isCommandMode ? searchCommands(value, commands) : [];
+  const dirtyHowtoLines = DIALOG_HOWTO.lines.filter(
+    (line) => !line.includes(SHORTCUT_TIP_MARKER),
+  );
 
   const emitDialogChange = useCallback(
     (lines: string[]) => {
@@ -48,6 +53,7 @@ export const InputBox = ({
     if (errorTimer) return;
 
     if (value === "") {
+      if (showingShortcuts) return;
       emitDialogChange(DIALOG_HOWTO.lines);
     } else if (isCommandMode) {
       if (filteredCommands.length === 0) {
@@ -72,13 +78,17 @@ export const InputBox = ({
 
         emitDialogChange(lines);
       }
+    } else {
+      emitDialogChange(dirtyHowtoLines);
     }
   }, [
     value,
     selectedIndex,
     isCommandMode,
     filteredCommands,
+    dirtyHowtoLines,
     errorTimer,
+    showingShortcuts,
     emitDialogChange,
   ]);
 
@@ -130,8 +140,15 @@ export const InputBox = ({
   );
 
   const handleShortcutsRequest = useCallback(() => {
+    setShowingShortcuts(true);
     emitDialogChange(formatShortcutLines());
   }, [emitDialogChange]);
+
+  const handleAnyAction = useCallback(() => {
+    if (showingShortcuts) {
+      setShowingShortcuts(false);
+    }
+  }, [showingShortcuts]);
 
   useInputHandler({
     value,
@@ -145,6 +162,7 @@ export const InputBox = ({
     setErrorTimer,
     onSubmit: handleSubmit,
     onShortcutsRequest: handleShortcutsRequest,
+    onAnyAction: handleAnyAction,
   });
 
   return (

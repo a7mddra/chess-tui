@@ -13,6 +13,7 @@ type UseInputHandlerOptions = {
   setErrorTimer: React.Dispatch<React.SetStateAction<NodeJS.Timeout | null>>;
   onSubmit: (value: string) => void;
   onShortcutsRequest: () => void;
+  onAnyAction?: () => void;
 };
 
 export const useInputHandler = ({
@@ -27,8 +28,11 @@ export const useInputHandler = ({
   setErrorTimer,
   onSubmit,
   onShortcutsRequest,
+  onAnyAction,
 }: UseInputHandlerOptions): void => {
   useInput((_input, key) => {
+    onAnyAction?.();
+
     if (errorTimer) {
       clearTimeout(errorTimer);
       setErrorTimer(null);

@@ -4,7 +4,7 @@ import type { ChildProcess } from "node:child_process";
 import { useRouter, type GameMode } from "@/router/AppRouter";
 import { Board, InputBox } from "@/features";
 import { HighlightBox } from "@/components";
-import { spawnBoardWindow, DIALOG_HOWTO, mod } from "@/lib";
+import { spawnBoardWindow, DIALOG_HOWTO, getMockGameSnapshot, mod } from "@/lib";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -17,33 +17,12 @@ const BORDER_COLOR = "#555555";
 const BOARD_WIDTH = 50;
 
 // ---------------------------------------------------------------------------
-// Mock data
-// ---------------------------------------------------------------------------
-
-const MOCK_PLAYERS = {
-  top: {
-    name: "Magnus",
-    elo: 2830,
-    clock: "22:10",
-    captured: "♝♞♟♟",
-    advantage: "",
-  },
-  bottom: {
-    name: "Hikaru",
-    elo: 2785,
-    clock: "25:10",
-    captured: "♗♘♖",
-    advantage: "+3",
-  },
-} as const;
-
-// ---------------------------------------------------------------------------
 // Player info
 // ---------------------------------------------------------------------------
 
 type PlayerInfoProps = {
   name: string;
-  elo: number;
+  elo: number | null;
   clock: string;
   captured: string;
   advantage: string;
@@ -61,7 +40,7 @@ const PlayerInfo = ({
   <Box flexDirection="column" paddingX={1}>
     <Box justifyContent="space-between">
       <Text bold dimColor={!isActive}>
-        {name} ({elo})
+        {name} ({elo ?? "-"})
       </Text>
       <Text backgroundColor={DIM_BG} color={ACCENT} dimColor={!isActive}>
         {" "}
@@ -137,7 +116,7 @@ type GameScreenProps = {
 };
 
 export const GameScreen = ({
-  mode: _mode,
+  mode,
 }: GameScreenProps): React.JSX.Element => {
   const { navigate } = useRouter();
   const { exit } = useApp();
@@ -152,6 +131,8 @@ export const GameScreen = ({
   const [detached, setDetached] = useState(false);
   const [dialogLines, setDialogLines] = useState<string[]>(DIALOG_HOWTO.lines);
   const childRef = useRef<ChildProcess | null>(null);
+
+  const snapshot = getMockGameSnapshot(mode);
 
   const toggleDetach = useCallback(() => {
     if (detached) {
@@ -208,9 +189,9 @@ export const GameScreen = ({
         paddingTop={1}
       >
         <Box flexDirection="column" flexGrow={0}>
-          <PlayerInfo {...MOCK_PLAYERS.top} isActive={false} />
+          <PlayerInfo {...snapshot.players.top} isActive={false} />
           <Box height={1} />
-          <PlayerInfo {...MOCK_PLAYERS.bottom} isActive={true} />
+          <PlayerInfo {...snapshot.players.bottom} isActive={true} />
         </Box>
         <Box flexGrow={1} />
         <Box flexDirection="column" alignItems="center">
@@ -222,7 +203,11 @@ export const GameScreen = ({
             align="left"
             topBorder
           />
-          <InputBox width={panelWidth - 4} onDialogChange={setDialogLines} />
+          <InputBox
+            width={panelWidth - 4}
+            onDialogChange={setDialogLines}
+            commands={snapshot.commands}
+          />
         </Box>
       </Box>
 

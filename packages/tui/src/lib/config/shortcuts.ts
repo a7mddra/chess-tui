@@ -16,7 +16,7 @@ const opt = (key: string): string =>
 export const SHORTCUTS: Shortcut[] = [
   { label: "Exit program", keys: mod("c") },
   { label: "Back to welcome", keys: "Esc" },
-  { label: "Detach / restore board", keys: mod("d") },
+  { label: "Detach board", keys: mod("d") },
   { label: "Undo last move", keys: mod("z") },
 ];
 
