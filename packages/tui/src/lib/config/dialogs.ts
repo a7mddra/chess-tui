@@ -20,6 +20,7 @@ export const DIALOG_HOWTO = d("howto", [
   "• e2e4 to move a piece",
   "• e2 to see valid moves",
   "• / for commands",
+  "• ? for shortcuts",
 ]);
 
 // -- Draw ------------------------------------------------------------------

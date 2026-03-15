@@ -2,13 +2,90 @@ import type { Command } from "../config/commands";
 
 // ---------------------------------------------------------------------------
 // Fuzzy command search — scores every command against a user query and
-// returns matches sorted by relevance. All tokens in the query must match
-// (AND logic); a command is excluded if any single token fails.
+// returns matches sorted by relevance. Tokens do not need exact or full
+// coverage; commands are ranked by how many tokens match and how strong the
+// matches are.
 // ---------------------------------------------------------------------------
 
 const SCORE_EXACT = 10;
 const SCORE_PREFIX = 5;
 const SCORE_SUBSTRING = 2;
+const SCORE_FUZZY_MAX = 4;
+const MIN_FUZZY_SIMILARITY = 0.55;
+
+const levenshteinDistance = (a: string, b: string): number => {
+  if (a === b) return 0;
+  if (a.length === 0) return b.length;
+  if (b.length === 0) return a.length;
+
+  const prev = new Array<number>(b.length + 1);
+  const curr = new Array<number>(b.length + 1);
+
+  for (let j = 0; j <= b.length; j++) {
+    prev[j] = j;
+  }
+
+  for (let i = 1; i <= a.length; i++) {
+    curr[0] = i;
+
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+
+      curr[j] = Math.min(
+        prev[j]! + 1,
+        curr[j - 1]! + 1,
+        prev[j - 1]! + cost,
+      );
+    }
+
+    for (let j = 0; j <= b.length; j++) {
+      prev[j] = curr[j]!;
+    }
+  }
+
+  return prev[b.length]!;
+};
+
+const longestCommonSubsequenceLength = (a: string, b: string): number => {
+  if (a.length === 0 || b.length === 0) return 0;
+
+  const prev = new Array<number>(b.length + 1).fill(0);
+  const curr = new Array<number>(b.length + 1).fill(0);
+
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      if (a[i - 1] === b[j - 1]) {
+        curr[j] = prev[j - 1]! + 1;
+      } else {
+        curr[j] = Math.max(prev[j]!, curr[j - 1]!);
+      }
+    }
+
+    for (let j = 0; j <= b.length; j++) {
+      prev[j] = curr[j]!;
+      curr[j] = 0;
+    }
+  }
+
+  return prev[b.length]!;
+};
+
+const getFuzzyScore = (token: string, candidate: string): number => {
+  if (token.length < 3 || candidate.length < 3) return 0;
+
+  const editDistance = levenshteinDistance(token, candidate);
+  const editSimilarity =
+    1 - editDistance / Math.max(token.length, candidate.length);
+
+  const lcsLength = longestCommonSubsequenceLength(token, candidate);
+  const lcsSimilarity = lcsLength / Math.min(token.length, candidate.length);
+
+  const similarity = Math.max(editSimilarity, lcsSimilarity);
+
+  if (similarity < MIN_FUZZY_SIMILARITY) return 0;
+
+  return Math.max(1, Math.round(SCORE_FUZZY_MAX * similarity));
+};
 
 /**
  * Search commands using a multi-token fuzzy strategy.
@@ -41,7 +118,7 @@ export const searchCommands = (
     const full = words.join(" ");
 
     let totalScore = 0;
-    let allMatched = true;
+    let matchedTokens = 0;
 
     for (const token of tokens) {
       let best = 0;
@@ -52,6 +129,8 @@ export const searchCommands = (
           best = Math.max(best, SCORE_EXACT);
         } else if (word.startsWith(token)) {
           best = Math.max(best, SCORE_PREFIX);
+        } else {
+          best = Math.max(best, getFuzzyScore(token, word));
         }
       }
 
@@ -61,15 +140,18 @@ export const searchCommands = (
       }
 
       if (best === 0) {
-        allMatched = false;
-        break;
+        continue;
       }
 
+      matchedTokens += 1;
       totalScore += best;
     }
 
-    if (allMatched) {
-      scored.push({ command, score: totalScore });
+    if (matchedTokens > 0) {
+      const coverage = matchedTokens / tokens.length;
+      const weightedScore = totalScore * coverage;
+
+      scored.push({ command, score: weightedScore });
     }
   }
 

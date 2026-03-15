@@ -4,7 +4,7 @@ import type { ChildProcess } from "node:child_process";
 import { useRouter, type GameMode } from "@/router/AppRouter";
 import { Board, InputBox } from "@/features";
 import { HighlightBox } from "@/components";
-import { spawnBoardWindow, DIALOG_HOWTO } from "@/lib";
+import { spawnBoardWindow, DIALOG_HOWTO, mod } from "@/lib";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -220,6 +220,7 @@ export const GameScreen = ({
             width={panelWidth - 4}
             height={6}
             align="left"
+            topBorder
           />
           <InputBox width={panelWidth - 4} onDialogChange={setDialogLines} />
         </Box>
@@ -249,7 +250,7 @@ export const GameScreen = ({
         {/* footer hint */}
         <Box paddingX={1}>
           <Text color={BORDER_COLOR}>
-            {detached ? "Ctrl+D: restore board" : "Ctrl+D: detach board"}
+            {detached ? `${mod("d")}: restore board` : `${mod("d")}: detach board`}
           </Text>
         </Box>
       </Box>

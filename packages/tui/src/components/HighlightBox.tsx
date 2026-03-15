@@ -8,6 +8,7 @@ type HighlightBoxProps = {
   width: number;
   height: number;
   align?: "center" | "left";
+  topBorder?: boolean;
   paddingX?: number;
   paddingY?: number;
   padding?: number;
@@ -17,11 +18,46 @@ type HighlightBoxProps = {
   paddingBottom?: number;
 };
 
+/**
+ * Word-wrap a list of lines so no line exceeds `maxWidth`.
+ * Splits on word boundaries; if a single word is longer than
+ * maxWidth it is kept as-is (hard truncation happens at render).
+ */
+const wrapLines = (lines: string[], maxWidth: number): string[] => {
+  const result: string[] = [];
+
+  for (const raw of lines) {
+    if (raw.length <= maxWidth) {
+      result.push(raw);
+      continue;
+    }
+
+    const words = raw.split(" ");
+    let current = "";
+
+    for (const word of words) {
+      if (current === "") {
+        current = word;
+      } else if (current.length + 1 + word.length <= maxWidth) {
+        current += " " + word;
+      } else {
+        result.push(current);
+        current = word;
+      }
+    }
+
+    if (current) result.push(current);
+  }
+
+  return result;
+};
+
 export const HighlightBox = ({
   label,
   width,
   height,
   align = "center",
+  topBorder = false,
   paddingX,
   paddingY,
   padding,
@@ -30,8 +66,14 @@ export const HighlightBox = ({
   paddingTop,
   paddingBottom,
 }: HighlightBoxProps): React.JSX.Element => {
-  const lines = Array.isArray(label) ? label : [label];
-  const startIdx = Math.max(0, Math.floor((height - lines.length) / 2));
+  const rawLines = Array.isArray(label) ? label : [label];
+
+  // Left-align uses 1 char padding, so effective wrap width is narrower
+  const contentWidth = align === "left" ? width - 1 : width;
+  const lines = wrapLines(rawLines, contentWidth);
+
+  // Always start from the top (row 0)
+  const startIdx = 0;
 
   return (
     <Box
@@ -45,6 +87,7 @@ export const HighlightBox = ({
       paddingTop={paddingTop}
       paddingBottom={paddingBottom}
     >
+      {topBorder && <Text color={DIM_BG}>{"▄".repeat(Math.max(0, width))}</Text>}
       {Array.from({ length: height }, (_, i) => {
         let line = " ".repeat(width);
         const text =
@@ -60,7 +103,6 @@ export const HighlightBox = ({
               text +
               " ".repeat(Math.max(0, width - pad - text.length));
           } else if (align === "left") {
-            // Add 1 space of padding for visual balance when left aligned
             line =
               " " + text + " ".repeat(Math.max(0, width - text.length - 1));
           }
