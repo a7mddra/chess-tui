@@ -14,7 +14,7 @@ const ACCENT = "#b2e068";
 const DIM_BG = "#2a2a2a";
 const BORDER_COLOR = "#555555";
 
-const BOARD_WIDTH = 36;
+const BOARD_WIDTH = 50;
 
 // ---------------------------------------------------------------------------
 // Mock data
@@ -47,6 +47,7 @@ type PlayerInfoProps = {
   clock: string;
   captured: string;
   advantage: string;
+  isActive?: boolean;
 };
 
 const PlayerInfo = ({
@@ -55,18 +56,19 @@ const PlayerInfo = ({
   clock,
   captured,
   advantage,
+  isActive = true,
 }: PlayerInfoProps): React.JSX.Element => (
   <Box flexDirection="column" paddingX={1}>
     <Box justifyContent="space-between">
-      <Text bold>
+      <Text bold dimColor={!isActive}>
         {name} ({elo})
       </Text>
-      <Text backgroundColor={DIM_BG} color={ACCENT}>
+      <Text backgroundColor={DIM_BG} color={ACCENT} dimColor={!isActive}>
         {" "}
         ◴ {clock}{" "}
       </Text>
     </Box>
-    <Text color="#aaaaaa">
+    <Text color="#aaaaaa" dimColor={!isActive}>
       {captured}
       {advantage ? ` ${advantage}` : ""}
     </Text>
@@ -206,9 +208,9 @@ export const GameScreen = ({
         paddingTop={1}
       >
         <Box flexDirection="column" flexGrow={0}>
-          <PlayerInfo {...MOCK_PLAYERS.top} />
+          <PlayerInfo {...MOCK_PLAYERS.top} isActive={false} />
           <Box height={1} />
-          <PlayerInfo {...MOCK_PLAYERS.bottom} />
+          <PlayerInfo {...MOCK_PLAYERS.bottom} isActive={true} />
         </Box>
         <Box flexGrow={1} />
         <Box flexDirection="column" alignItems="center">

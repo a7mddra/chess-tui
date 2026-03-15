@@ -1,17 +1,21 @@
 export type Command = {
-  name: string;
-  description: string;
+  /** Internal ID used by backend logic (e.g. "new", "accept") */
+  id: string;
+  /** Display label shown in the command list (e.g. "Start new game") */
+  label: string;
+  /** Extra keywords for search that aren't in the label */
+  keywords?: string[];
 };
 
 export const COMMANDS: Command[] = [
-  { name: "/new", description: "Start new game" },
-  { name: "/undo", description: "Undo last move" },
-  { name: "/resign", description: "Resign game" },
-  { name: "/draw", description: "Offer draw" },
-  { name: "/accept", description: "Accept draw offer" },
-  { name: "/decline", description: "Decline draw offer" },
-  { name: "/analyze", description: "Analyze game" },
-  { name: "/flip", description: "Flip board" },
-  { name: "/difficulty", description: "Set difficulty" },
-  { name: "/exit", description: "Exit program" },
+  { id: "new", label: "Start new game", keywords: ["new"] },
+  { id: "undo", label: "Undo last move" },
+  { id: "resign", label: "Resign game" },
+  { id: "draw", label: "Offer draw" },
+  { id: "accept", label: "Accept draw offer" },
+  { id: "decline", label: "Decline draw offer" },
+  { id: "analyze", label: "Analyze game" },
+  { id: "flip", label: "Flip board" },
+  { id: "difficulty", label: "Set difficulty", keywords: ["level"] },
+  { id: "exit", label: "Exit program", keywords: ["quit"] },
 ];

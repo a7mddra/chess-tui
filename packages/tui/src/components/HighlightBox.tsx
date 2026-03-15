@@ -47,9 +47,12 @@ export const HighlightBox = ({
     >
       {Array.from({ length: height }, (_, i) => {
         let line = " ".repeat(width);
+        const text =
+          i >= startIdx && i < startIdx + lines.length
+            ? (lines[i - startIdx] || "")
+            : "";
 
-        if (i >= startIdx && i < startIdx + lines.length) {
-          const text = lines[i - startIdx] || "";
+        if (text) {
           if (align === "center") {
             const pad = Math.max(0, Math.floor((width - text.length) / 2));
             line =
@@ -63,8 +66,11 @@ export const HighlightBox = ({
           }
         }
 
+        const isSelected = text.startsWith(">");
+        const lineColor = isSelected ? "#688ba6" : "#666666";
+
         return (
-          <Text key={`hl-${i}`} backgroundColor={DIM_BG} color="#666666">
+          <Text key={`hl-${i}`} backgroundColor={DIM_BG} color={lineColor}>
             {line.slice(0, width)}
           </Text>
         );
