@@ -42,6 +42,7 @@ export const InputBox = ({
 
   const isCommandMode = value.startsWith("/");
   const filteredCommands = isCommandMode ? searchCommands(value, commands) : [];
+  const allowUndoShortcut = commands.some((c) => c.id === "undo");
   const dirtyHowtoLines = DIALOG_HOWTO.lines.filter(
     (line) => !line.includes(SHORTCUT_TIP_MARKER),
   );
@@ -198,8 +199,8 @@ export const InputBox = ({
 
   const handleShortcutsRequest = useCallback(() => {
     setShowingShortcuts(true);
-    emitDialogChange(formatShortcutLines());
-  }, [emitDialogChange]);
+    emitDialogChange(formatShortcutLines({ includeUndo: allowUndoShortcut }));
+  }, [emitDialogChange, allowUndoShortcut]);
 
   const handleAnyAction = useCallback(() => {
     if (showingShortcuts) {
@@ -208,11 +209,14 @@ export const InputBox = ({
   }, [showingShortcuts]);
 
   const handleUndoRequest = useCallback(() => {
+    if (!allowUndoShortcut) {
+      return;
+    }
     if (onCommand) {
       onCommand("undo");
     }
     setSelectedIndex(0);
-  }, [onCommand]);
+  }, [onCommand, allowUndoShortcut]);
 
   useInputHandler({
     value,
