@@ -101,27 +101,11 @@ export const useChessBoard = (
   // swapping, we stop replaying (invalid chain).
   // -------------------------------------------------------------------------
 
-  const legalFutureChess = useMemo(() => {
-    let c = new Chess(chess.fen());
-    for (const pm of premoves) {
-      // Try as-is first (matches current turn)
-      const r1 = tryMove(c, pm);
-      if (r1) { c = r1; continue; }
-      // Try with swapped turn
-      const r2 = tryMoveSwapped(c, pm);
-      if (r2) { c = r2; continue; }
-      // Illegal – stop projection
-      break;
-    }
-    return c;
-  }, [chess, premoves]);
-
   // Speculative projected board: apply queued premoves by piece power only.
   // This is intentionally not strict chess legality and is used for previewing
   // premoves and chaining them while waiting for an opponent move.
   const projectedState = useMemo(() => {
     let projectedBoard = chess.board().map((row) => [...row]) as BoardCell[][];
-    let projectedTurn = chess.turn();
 
     for (const pm of premoves) {
       const [fr, fc] = sqToCoords(pm.from);
@@ -144,18 +128,17 @@ export const useChessBoard = (
       };
 
       projectedBoard = next;
-      projectedTurn = projectedTurn === 'w' ? 'b' : 'w';
     }
 
     return {
       board: projectedBoard,
-      turn: projectedTurn,
     };
   }, [chess, premoves]);
 
   const board = projectedState.board;
-  const turn = projectedState.turn;
-  const fen = legalFutureChess.fen();
+  const realTurn = chess.turn();
+  const turn = realTurn;
+  const fen = chess.fen();
 
   const history = chess.history({ verbose: true });
   const lastRealMove = history.length > 0 ? {
@@ -172,14 +155,14 @@ export const useChessBoard = (
     const cell = board[r]?.[c];
     if (!cell) return [];
 
-    if (cell.color === turn) {
-      return legalFutureChess
+    if (cell.color === realTurn) {
+      return chess
         .moves({ square: selectedSquare as Square, verbose: true })
         .map((m) => m.to);
     }
 
     return getSpeculativeMoves(board, selectedSquare as Square, cell.color);
-  }, [board, selectedSquare, turn, legalFutureChess]);
+  }, [board, selectedSquare, realTurn, chess]);
 
   // Squares that should be highlighted red (premove path)
   const premoveJumps = useMemo(() => {
@@ -263,7 +246,7 @@ export const useChessBoard = (
       const cell = board[r]?.[c];
       
       if (cell) {
-        if (cell.color === turn) {
+        if (cell.color === realTurn) {
           return false;
         }
 
@@ -277,7 +260,7 @@ export const useChessBoard = (
 
       return false;
     },
-    [chess, board, turn, premoves, flushPremoves, onMoveDispatch]
+    [chess, board, realTurn, premoves, flushPremoves, onMoveDispatch]
   );
 
   // -------------------------------------------------------------------------
@@ -327,33 +310,9 @@ export const useChessBoard = (
         return;
       } catch { /* not valid SAN for real board */ }
 
-      // Try SAN on futureChess as premove
-      try {
-        const clone = new Chess(legalFutureChess.fen());
-        const m = clone.move(normalized);
-        if (m) {
-          const entry: PremoveEntry = { from: m.from, to: m.to, promotion: m.promotion };
-          setPremoves(prev => [...prev, entry]);
-          setSelectedSquare(null);
-          return;
-        }
-      } catch { /* not valid SAN on future board either */ }
-
-      // Try SAN with swapped turn on futureChess
-      try {
-        const clone = new Chess(swapTurn(legalFutureChess.fen()));
-        const m = clone.move(normalized);
-        if (m) {
-          const entry: PremoveEntry = { from: m.from, to: m.to, promotion: m.promotion };
-          setPremoves(prev => [...prev, entry]);
-          setSelectedSquare(null);
-          return;
-        }
-      } catch { /* nope */ }
-
       setSelectedSquare(null);
     },
-    [selectedSquare, attemptMove, chess, legalFutureChess, premoves, flushPremoves, onMoveDispatch]
+    [selectedSquare, attemptMove, chess, premoves, flushPremoves, onMoveDispatch]
   );
 
   // -------------------------------------------------------------------------
