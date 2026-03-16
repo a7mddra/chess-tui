@@ -24,6 +24,10 @@ type PremoveEntry = {
   promotion?: string;
 };
 
+type UseChessBoardOptions = {
+  selfPlay?: boolean;
+};
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -80,8 +84,10 @@ const parseCoordinate = (input: string): PremoveEntry | null => {
 
 export const useChessBoard = (
   initialFen: string = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
-  onMoveDispatch?: (uci: string) => void
+  onMoveDispatch?: (uci: string) => void,
+  options: UseChessBoardOptions = {}
 ) => {
+  const selfPlay = options.selfPlay ?? false;
   const [chess, setChess] = useState(() => new Chess(initialFen));
   const [premoves, setPremoves] = useState<PremoveEntry[]>([]);
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
@@ -95,7 +101,7 @@ export const useChessBoard = (
   // swapping, we stop replaying (invalid chain).
   // -------------------------------------------------------------------------
 
-  const futureChess = useMemo(() => {
+  const legalFutureChess = useMemo(() => {
     let c = new Chess(chess.fen());
     for (const pm of premoves) {
       // Try as-is first (matches current turn)
@@ -110,9 +116,46 @@ export const useChessBoard = (
     return c;
   }, [chess, premoves]);
 
-  const board = futureChess.board() as BoardCell[][];
-  const turn = futureChess.turn();
-  const fen = futureChess.fen();
+  // Speculative projected board: apply queued premoves by piece power only.
+  // This is intentionally not strict chess legality and is used for previewing
+  // premoves and chaining them while waiting for an opponent move.
+  const projectedState = useMemo(() => {
+    let projectedBoard = chess.board().map((row) => [...row]) as BoardCell[][];
+    let projectedTurn = chess.turn();
+
+    for (const pm of premoves) {
+      const [fr, fc] = sqToCoords(pm.from);
+      const [tr, tc] = sqToCoords(pm.to);
+
+      const source = projectedBoard[fr]?.[fc];
+      if (!source) break;
+
+      const speculative = getSpeculativeMoves(projectedBoard, pm.from, source.color);
+      if (!speculative.includes(pm.to)) break;
+
+      const next = projectedBoard.map((row) => [...row]) as BoardCell[][];
+      const isPromotionRow = source.type === 'p' && (tr === 0 || tr === 7);
+
+      next[fr]![fc] = null;
+      next[tr]![tc] = {
+        square: pm.to,
+        type: isPromotionRow && pm.promotion ? pm.promotion : source.type,
+        color: source.color,
+      };
+
+      projectedBoard = next;
+      projectedTurn = projectedTurn === 'w' ? 'b' : 'w';
+    }
+
+    return {
+      board: projectedBoard,
+      turn: projectedTurn,
+    };
+  }, [chess, premoves]);
+
+  const board = projectedState.board;
+  const turn = projectedState.turn;
+  const fen = legalFutureChess.fen();
 
   const history = chess.history({ verbose: true });
   const lastRealMove = history.length > 0 ? {
@@ -129,49 +172,69 @@ export const useChessBoard = (
     const cell = board[r]?.[c];
     if (!cell) return [];
 
+    if (cell.color === turn) {
+      return legalFutureChess
+        .moves({ square: selectedSquare as Square, verbose: true })
+        .map((m) => m.to);
+    }
+
     return getSpeculativeMoves(board, selectedSquare as Square, cell.color);
-  }, [board, selectedSquare]);
+  }, [board, selectedSquare, turn, legalFutureChess]);
 
   // Squares that should be highlighted red (premove path)
   const premoveJumps = useMemo(() => {
-    let c = new Chess(chess.fen());
     const jumps: string[] = [];
     for (const pm of premoves) {
-      const r1 = tryMove(c, pm);
-      if (r1) { jumps.push(pm.from, pm.to); c = r1; continue; }
-      const r2 = tryMoveSwapped(c, pm);
-      if (r2) { jumps.push(pm.from, pm.to); c = r2; continue; }
-      break;
+      jumps.push(pm.to);
     }
     return jumps;
-  }, [chess, premoves]);
+  }, [premoves]);
 
   // -------------------------------------------------------------------------
-  // Execute AT MOST ONE premove after a real move has been made.
+  // Execute premoves after a real move has been made.
+  // In online mode we only fire one premove.
+  // In self-play mode we keep draining the queue to support deep chains.
   // Returns { newChess, remaining }.
   // -------------------------------------------------------------------------
 
-  const flushOnePremove = useCallback(
+  const flushPremoves = useCallback(
     (realChess: Chess, queue: PremoveEntry[]): { newChess: Chess; remaining: PremoveEntry[] } => {
       if (queue.length === 0) return { newChess: realChess, remaining: [] };
 
-      const first = queue[0]!;
-      const rest = queue.slice(1);
+      let c = new Chess(realChess.fen());
+      let idx = 0;
 
-      // Try the premove on the real board (current turn)
-      const result = tryMove(realChess, first);
-      if (result) {
+      while (idx < queue.length) {
+        const entry = queue[idx]!;
+
+        // Try the premove on the real board (current turn)
+        let result = tryMove(c, entry);
+
+        // Self-play only: also allow forcing the side-to-move swap so queued
+        // same-colour chains can execute in dev mode.
+        if (!result && selfPlay) {
+          result = tryMoveSwapped(c, entry);
+        }
+
+        if (!result) {
+          return { newChess: c, remaining: [] };
+        }
+
         const m = result.history({ verbose: true });
         const lastM = m[m.length - 1];
         if (lastM && onMoveDispatch) onMoveDispatch(lastM.lan ?? lastM.san);
-        // Only ONE premove fires – return remaining queue untouched
-        return { newChess: result, remaining: rest };
+
+        c = result;
+        idx += 1;
+
+        if (!selfPlay) {
+          return { newChess: c, remaining: queue.slice(idx) };
+        }
       }
 
-      // Premove is no longer legal → discard entire chain
-      return { newChess: realChess, remaining: [] };
+      return { newChess: c, remaining: [] };
     },
-    [onMoveDispatch]
+    [onMoveDispatch, selfPlay]
   );
 
   // -------------------------------------------------------------------------
@@ -187,8 +250,8 @@ export const useChessBoard = (
         const lastM = h[h.length - 1];
         if (lastM && onMoveDispatch) onMoveDispatch(lastM.lan ?? lastM.san);
 
-        // After a real move, try to auto-fire ONE premove
-        const { newChess, remaining } = flushOnePremove(realResult, premoves);
+        // After a real move, try to auto-fire queued premoves
+        const { newChess, remaining } = flushPremoves(realResult, premoves);
         setChess(newChess);
         setPremoves(remaining);
         setSelectedSquare(null);
@@ -200,6 +263,10 @@ export const useChessBoard = (
       const cell = board[r]?.[c];
       
       if (cell) {
+        if (cell.color === turn) {
+          return false;
+        }
+
         const speculativeValid = getSpeculativeMoves(board, entry.from, cell.color);
         if (speculativeValid.includes(entry.to)) {
           setPremoves(prev => [...prev, entry]);
@@ -210,7 +277,7 @@ export const useChessBoard = (
 
       return false;
     },
-    [chess, board, premoves, flushOnePremove, onMoveDispatch]
+    [chess, board, turn, premoves, flushPremoves, onMoveDispatch]
   );
 
   // -------------------------------------------------------------------------
@@ -253,7 +320,7 @@ export const useChessBoard = (
         const clone = new Chess(chess.fen());
         const m = clone.move(normalized);
         if (m && onMoveDispatch) onMoveDispatch(m.lan ?? m.san);
-        const { newChess, remaining } = flushOnePremove(clone, premoves);
+        const { newChess, remaining } = flushPremoves(clone, premoves);
         setChess(newChess);
         setPremoves(remaining);
         setSelectedSquare(null);
@@ -262,7 +329,7 @@ export const useChessBoard = (
 
       // Try SAN on futureChess as premove
       try {
-        const clone = new Chess(futureChess.fen());
+        const clone = new Chess(legalFutureChess.fen());
         const m = clone.move(normalized);
         if (m) {
           const entry: PremoveEntry = { from: m.from, to: m.to, promotion: m.promotion };
@@ -274,7 +341,7 @@ export const useChessBoard = (
 
       // Try SAN with swapped turn on futureChess
       try {
-        const clone = new Chess(swapTurn(futureChess.fen()));
+        const clone = new Chess(swapTurn(legalFutureChess.fen()));
         const m = clone.move(normalized);
         if (m) {
           const entry: PremoveEntry = { from: m.from, to: m.to, promotion: m.promotion };
@@ -286,7 +353,7 @@ export const useChessBoard = (
 
       setSelectedSquare(null);
     },
-    [selectedSquare, attemptMove, chess, futureChess, premoves, flushOnePremove, onMoveDispatch]
+    [selectedSquare, attemptMove, chess, legalFutureChess, premoves, flushPremoves, onMoveDispatch]
   );
 
   // -------------------------------------------------------------------------
@@ -300,13 +367,13 @@ export const useChessBoard = (
         const m = realC.move(moveStr);
         if (m && onMoveDispatch) onMoveDispatch(m.lan ?? m.san);
 
-        // Try to auto-fire ONE premove
-        const { newChess, remaining } = flushOnePremove(realC, premoves);
+        // Try to auto-fire queued premoves
+        const { newChess, remaining } = flushPremoves(realC, premoves);
         setChess(newChess);
         setPremoves(remaining);
       } catch { /* ignore invalid opponent move */ }
     },
-    [chess, premoves, flushOnePremove, onMoveDispatch]
+    [chess, premoves, flushPremoves, onMoveDispatch]
   );
 
   // -------------------------------------------------------------------------
@@ -343,11 +410,11 @@ export const useChessBoard = (
         const c = new Chess(newFen);
         setChess(c);
         // Try to salvage one premove against new position
-        const { remaining } = flushOnePremove(c, premoves);
+        const { remaining } = flushPremoves(c, premoves);
         setPremoves(remaining);
       } catch { /* bad FEN */ }
     },
-    [premoves, flushOnePremove]
+    [premoves, flushPremoves]
   );
 
   return {

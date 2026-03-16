@@ -29,7 +29,7 @@ const DevScreen = (): React.JSX.Element => {
   // based on the sophisticated logic added earlier.
   const chessBoard = useChessBoard(snapshot.fen, (uci) => {
     // We could log the uci if needed
-  });
+  }, { selfPlay: true });
 
   useInput((input, key) => {
     if (key.escape || (key.ctrl && input.toLowerCase() === "c")) {
