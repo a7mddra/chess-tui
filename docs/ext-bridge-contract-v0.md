@@ -57,7 +57,6 @@ This document defines the current online bridge contract between CLI/tests and t
     "fen": "optional-fen",
     "user": {
       "username": "string|null",
-      "nationality": "string|null",
       "elo": 1234,
       "clockText": "29:58",
       "clockMs": 1798000,
@@ -66,7 +65,6 @@ This document defines the current online bridge contract between CLI/tests and t
     },
     "opponent": {
       "username": "string|null",
-      "nationality": "string|null",
       "elo": 1300,
       "clockText": "30:00",
       "clockMs": 1800000,
