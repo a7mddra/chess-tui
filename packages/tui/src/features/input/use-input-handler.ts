@@ -13,6 +13,9 @@ type UseInputHandlerOptions = {
   setErrorTimer: React.Dispatch<React.SetStateAction<NodeJS.Timeout | null>>;
   onSubmit: (value: string) => void;
   onShortcutsRequest: () => void;
+  onUndoRequest?: () => void;
+  onHistoryUp?: () => boolean;
+  onHistoryDown?: () => boolean;
   onAnyAction?: () => void;
 };
 
@@ -28,6 +31,9 @@ export const useInputHandler = ({
   setErrorTimer,
   onSubmit,
   onShortcutsRequest,
+  onUndoRequest,
+  onHistoryUp,
+  onHistoryDown,
   onAnyAction,
 }: UseInputHandlerOptions): void => {
   useInput((_input, key) => {
@@ -66,12 +72,16 @@ export const useInputHandler = ({
       setCursor(0);
     } else if (key.ctrl && (_input ?? "").toLowerCase() === "e") {
       setCursor(value.length);
+    } else if ((key.ctrl || key.meta) && (_input ?? "").toLowerCase() === "z") {
+      onUndoRequest?.();
     } else if (key.upArrow) {
-      if (isCommandMode) {
+      const handledByHistory = onHistoryUp?.() ?? false;
+      if (!handledByHistory && isCommandMode) {
         setSelectedIndex((i) => Math.max(0, i - 1));
       }
     } else if (key.downArrow) {
-      if (isCommandMode) {
+      const handledByHistory = onHistoryDown?.() ?? false;
+      if (!handledByHistory && isCommandMode) {
         setSelectedIndex((i) => Math.min(filteredCommands.length - 1, i + 1));
       }
     } else if (key.delete) {

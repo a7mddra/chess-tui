@@ -35,6 +35,9 @@ export const InputBox = ({
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [errorTimer, setErrorTimer] = useState<NodeJS.Timeout | null>(null);
   const [showingShortcuts, setShowingShortcuts] = useState(false);
+  const [history, setHistory] = useState<string[]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+  const [historyDraft, setHistoryDraft] = useState("");
   const lastDialogRef = useRef("");
 
   const isCommandMode = value.startsWith("/");
@@ -107,6 +110,13 @@ export const InputBox = ({
     (submittedValue: string) => {
       if (errorTimer || submittedValue === "") return;
 
+      const normalized = submittedValue.trim();
+      if (normalized !== "") {
+        setHistory((prev) => [...prev, normalized]);
+      }
+      setHistoryIndex(-1);
+      setHistoryDraft("");
+
       if (isCommandMode) {
         const chosen = filteredCommands[selectedIndex];
         if (chosen && onCommand) {
@@ -145,6 +155,47 @@ export const InputBox = ({
     ],
   );
 
+  const handleHistoryUp = useCallback((): boolean => {
+    if (history.length === 0) {
+      return false;
+    }
+
+    const nextIndex = historyIndex === -1 ? history.length - 1 : Math.max(0, historyIndex - 1);
+
+    if (historyIndex === -1) {
+      setHistoryDraft(value);
+    }
+
+    const nextValue = history[nextIndex] ?? "";
+    setHistoryIndex(nextIndex);
+    setValue(nextValue);
+    setCursor(nextValue.length);
+    setSelectedIndex(0);
+    return true;
+  }, [history, historyIndex, value]);
+
+  const handleHistoryDown = useCallback((): boolean => {
+    if (history.length === 0 || historyIndex === -1) {
+      return false;
+    }
+
+    if (historyIndex >= history.length - 1) {
+      setHistoryIndex(-1);
+      setValue(historyDraft);
+      setCursor(historyDraft.length);
+      setSelectedIndex(0);
+      return true;
+    }
+
+    const nextIndex = historyIndex + 1;
+    const nextValue = history[nextIndex] ?? "";
+    setHistoryIndex(nextIndex);
+    setValue(nextValue);
+    setCursor(nextValue.length);
+    setSelectedIndex(0);
+    return true;
+  }, [history, historyIndex, historyDraft]);
+
   const handleShortcutsRequest = useCallback(() => {
     setShowingShortcuts(true);
     emitDialogChange(formatShortcutLines());
@@ -155,6 +206,13 @@ export const InputBox = ({
       setShowingShortcuts(false);
     }
   }, [showingShortcuts]);
+
+  const handleUndoRequest = useCallback(() => {
+    if (onCommand) {
+      onCommand("undo");
+    }
+    setSelectedIndex(0);
+  }, [onCommand]);
 
   useInputHandler({
     value,
@@ -168,6 +226,9 @@ export const InputBox = ({
     setErrorTimer,
     onSubmit: handleSubmit,
     onShortcutsRequest: handleShortcutsRequest,
+    onUndoRequest: handleUndoRequest,
+    onHistoryUp: handleHistoryUp,
+    onHistoryDown: handleHistoryDown,
     onAnyAction: handleAnyAction,
   });
 

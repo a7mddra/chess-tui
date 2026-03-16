@@ -98,9 +98,20 @@ export const GameScreen = ({
   const sessionId = React.useMemo(() => Math.random().toString(36).slice(2, 9), []);
   const snapshot = getMockGameSnapshot(mode);
 
-  const chessBoard = useChessBoard(snapshot.fen, (uci) => {
-    // Dispatch to real API here in the future
-  });
+  const chessBoard = useChessBoard(
+    snapshot.fen,
+    (uci) => {
+      // Dispatch to real API here in the future
+    },
+    {
+      onUndoFenDispatch: mode === "stockfish"
+        ? (fen) => {
+            // Stockfish offline path is stateless-per-request.
+            // Send this historical FEN to the engine adapter when wired.
+          }
+        : undefined,
+    },
+  );
 
   useBoardIpcServer(sessionId, {
     board: chessBoard.board,

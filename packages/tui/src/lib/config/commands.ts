@@ -13,13 +13,13 @@ export type CommandMode = "chesscom" | "stockfish";
 
 export const COMMANDS: Command[] = [
   { id: "new", label: "Start new game", keywords: ["new"], mode: "all" },
-  { id: "undo", label: "Undo last move", mode: "all" },
   { id: "resign", label: "Resign game", mode: "all" },
   { id: "draw", label: "Offer draw", mode: "online" },
   { id: "accept", label: "Accept draw offer", mode: "online" },
   { id: "decline", label: "Decline draw offer", mode: "online" },
   { id: "analyze", label: "Analyze game", mode: "online" },
   { id: "flip", label: "Flip board", mode: "offline" },
+  { id: "undo", label: "Undo last move", mode: "offline" },
   {
     id: "difficulty",
     label: "Set difficulty",

@@ -26,6 +26,13 @@ type PremoveEntry = {
 
 type UseChessBoardOptions = {
   selfPlay?: boolean;
+  onUndoFenDispatch?: (fen: string) => void;
+};
+
+type UndoSnapshot = {
+  fen: string;
+  premoves: PremoveEntry[];
+  selectedSquare: string | null;
 };
 
 // ---------------------------------------------------------------------------
@@ -88,9 +95,22 @@ export const useChessBoard = (
   options: UseChessBoardOptions = {}
 ) => {
   const selfPlay = options.selfPlay ?? false;
+  const onUndoFenDispatch = options.onUndoFenDispatch;
   const [chess, setChess] = useState(() => new Chess(initialFen));
   const [premoves, setPremoves] = useState<PremoveEntry[]>([]);
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
+  const [undoStack, setUndoStack] = useState<UndoSnapshot[]>([]);
+
+  const pushUndoSnapshot = useCallback(() => {
+    setUndoStack((prev) => [
+      ...prev,
+      {
+        fen: chess.fen(),
+        premoves,
+        selectedSquare,
+      },
+    ]);
+  }, [chess, premoves, selectedSquare]);
 
   // -------------------------------------------------------------------------
   // Projected board: replays premoves on top of real board (display only)
@@ -229,6 +249,7 @@ export const useChessBoard = (
       // 1. Try on real board – it's the user's actual turn
       const realResult = tryMove(chess, entry);
       if (realResult) {
+        pushUndoSnapshot();
         const h = realResult.history({ verbose: true });
         const lastM = h[h.length - 1];
         if (lastM && onMoveDispatch) onMoveDispatch(lastM.lan ?? lastM.san);
@@ -252,6 +273,7 @@ export const useChessBoard = (
 
         const speculativeValid = getSpeculativeMoves(board, entry.from, cell.color);
         if (speculativeValid.includes(entry.to)) {
+          pushUndoSnapshot();
           setPremoves(prev => [...prev, entry]);
           setSelectedSquare(null);
           return true;
@@ -260,7 +282,7 @@ export const useChessBoard = (
 
       return false;
     },
-    [chess, board, realTurn, premoves, flushPremoves, onMoveDispatch]
+    [chess, board, realTurn, premoves, flushPremoves, onMoveDispatch, pushUndoSnapshot]
   );
 
   // -------------------------------------------------------------------------
@@ -302,6 +324,7 @@ export const useChessBoard = (
       try {
         const clone = new Chess(chess.fen());
         const m = clone.move(normalized);
+        pushUndoSnapshot();
         if (m && onMoveDispatch) onMoveDispatch(m.lan ?? m.san);
         const { newChess, remaining } = flushPremoves(clone, premoves);
         setChess(newChess);
@@ -312,7 +335,7 @@ export const useChessBoard = (
 
       setSelectedSquare(null);
     },
-    [selectedSquare, attemptMove, chess, premoves, flushPremoves, onMoveDispatch]
+    [selectedSquare, attemptMove, chess, premoves, flushPremoves, onMoveDispatch, pushUndoSnapshot]
   );
 
   // -------------------------------------------------------------------------
@@ -345,18 +368,39 @@ export const useChessBoard = (
         setChess(new Chess(initialFen));
         setPremoves([]);
         setSelectedSquare(null);
+        setUndoStack([]);
       } else if (cmdId === 'undo') {
+        if (undoStack.length > 0) {
+          const last = undoStack[undoStack.length - 1]!;
+          setUndoStack((prev) => prev.slice(0, -1));
+          setChess(new Chess(last.fen));
+          setPremoves(last.premoves);
+          setSelectedSquare(last.selectedSquare);
+          onUndoFenDispatch?.(last.fen);
+          return;
+        }
+
+        // Fallback for legacy states not captured in undo stack.
+        if (premoves.length > 0) {
+          setPremoves((prev) => prev.slice(0, -1));
+          setSelectedSquare(null);
+          return;
+        }
+
         const c = new Chess(chess.fen());
-        c.undo();
-        setChess(c);
-        setPremoves([]);
+        const undone = c.undo();
+        if (undone) {
+          setChess(c);
+          onUndoFenDispatch?.(c.fen());
+        }
         setSelectedSquare(null);
       } else if (cmdId === 'restore' || cmdId === 'kill') {
         setPremoves([]);
         setSelectedSquare(null);
+        setUndoStack([]);
       }
     },
-    [initialFen, chess]
+    [initialFen, chess, premoves, undoStack, onUndoFenDispatch]
   );
 
   // -------------------------------------------------------------------------
@@ -371,6 +415,7 @@ export const useChessBoard = (
         // Try to salvage one premove against new position
         const { remaining } = flushPremoves(c, premoves);
         setPremoves(remaining);
+        setUndoStack([]);
       } catch { /* bad FEN */ }
     },
     [premoves, flushPremoves]

@@ -35,15 +35,15 @@ export const CHESSCOM_PLAYERS: GameSnapshot["players"] = {
 
 export const STOCKFISH_PLAYERS: GameSnapshot["players"] = {
   top: {
-    name: "stockfish18",
+    name: "player 2",
     elo: 3550,
     clock: "--:--",
     captured: "",
     advantage: "",
   },
   bottom: {
-    name: "you",
-    elo: null,
+    name: "player 1",
+    elo: 3220,
     clock: "--:--",
     captured: "",
     advantage: "",

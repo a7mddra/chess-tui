@@ -22,7 +22,7 @@ const DevScreen = (): React.JSX.Element => {
 
   const [dialogLines, setDialogLines] = useState<string[]>(DIALOG_HOWTO.lines);
 
-  const snapshot = getMockGameSnapshot("chesscom");
+  const snapshot = getMockGameSnapshot("stockfish");
 
   // In this dev test, we play both sides!
   // The chessBoard is entirely driven by our inputs and flushPremoves handles the queue
