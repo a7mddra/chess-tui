@@ -2,14 +2,16 @@ import { render, Box, Text, useApp, useInput, useStdout } from "ink";
 import React, { useState } from "react";
 import { AppRouter } from "@/router/AppRouter";
 import { Board } from "@/features";
+import { useBoardIpcClient } from "@/lib";
 
 // ---------------------------------------------------------------------------
 // Standalone board window — fills the terminal with just the board
 // ---------------------------------------------------------------------------
 
-const BoardScreen = (): React.JSX.Element => {
+const BoardScreen = ({ sessionId }: { sessionId: string }): React.JSX.Element => {
   const { exit } = useApp();
   const { stdout } = useStdout();
+  const boardProps = useBoardIpcClient(sessionId);
 
   const columns = stdout.columns ?? 40;
   const rows = stdout.rows ?? 20;
@@ -35,7 +37,11 @@ const BoardScreen = (): React.JSX.Element => {
       alignItems="center"
       flexDirection="column"
     >
-      <Board />
+      {boardProps ? (
+        <Board {...boardProps} />
+      ) : (
+        <Text>Waiting for main process...</Text>
+      )}
     </Box>
   );
 };
@@ -44,8 +50,12 @@ const BoardScreen = (): React.JSX.Element => {
 // Main entry
 // ---------------------------------------------------------------------------
 
-if (process.argv.includes("--detached-board")) {
-  render(<BoardScreen />, { exitOnCtrlC: false });
+const detachedArg = process.argv.find(arg => arg.startsWith("--session-id="));
+if (process.argv.includes("--detached-board") && detachedArg) {
+  const sessionId = detachedArg.split("=")[1];
+  if (sessionId) {
+    render(<BoardScreen sessionId={sessionId} />, { exitOnCtrlC: false });
+  }
 } else {
   render(<AppRouter />, { exitOnCtrlC: false });
 }

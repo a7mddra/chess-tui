@@ -1,12 +1,7 @@
 import { getCommandsForMode, type Command, type CommandMode } from "../config/commands";
+import type { PlayerInfoProps } from "../../features/players/PlayerInfo";
 
-export type ApiPlayer = {
-  name: string;
-  elo: number | null;
-  clock: string;
-  captured: string;
-  advantage: string;
-};
+export type ApiPlayer = PlayerInfoProps;
 
 export type GameSnapshot = {
   mode: CommandMode;
@@ -19,9 +14,9 @@ export type GameSnapshot = {
   commands: Command[];
 };
 
-const START_FEN = "rn1qkbnr/pppb1ppp/3pp3/8/2BPP3/2N2N2/PPP2PPP/R1BQK2R w KQkq - 0 6";
+export const START_FEN = "rn1qkbnr/pppb1ppp/3pp3/8/2BPP3/2N2N2/PPP2PPP/R1BQK2R w KQkq - 0 6";
 
-const CHESSCOM_PLAYERS: GameSnapshot["players"] = {
+export const CHESSCOM_PLAYERS: GameSnapshot["players"] = {
   top: {
     name: "Magnus",
     elo: 2830,
@@ -38,7 +33,7 @@ const CHESSCOM_PLAYERS: GameSnapshot["players"] = {
   },
 };
 
-const STOCKFISH_PLAYERS: GameSnapshot["players"] = {
+export const STOCKFISH_PLAYERS: GameSnapshot["players"] = {
   top: {
     name: "stockfish18",
     elo: 3550,

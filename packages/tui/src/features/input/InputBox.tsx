@@ -19,12 +19,16 @@ type InputBoxProps = {
   width: number;
   onDialogChange: (lines: string[]) => void;
   commands: Command[];
+  onMove?: (uci: string) => void;
+  onCommand?: (id: string) => void;
 };
 
 export const InputBox = ({
   width,
   onDialogChange,
   commands,
+  onMove,
+  onCommand,
 }: InputBoxProps): React.JSX.Element => {
   const [value, setValue] = useState("");
   const [cursor, setCursor] = useState(0);
@@ -105,8 +109,8 @@ export const InputBox = ({
 
       if (isCommandMode) {
         const chosen = filteredCommands[selectedIndex];
-        if (chosen) {
-          // TODO: dispatch command by chosen.id
+        if (chosen && onCommand) {
+          onCommand(chosen.id);
         }
         setValue("");
         setCursor(0);
@@ -115,7 +119,9 @@ export const InputBox = ({
       }
 
       if (isValidAlgebraic(submittedValue)) {
-        // TODO: send move
+        if (onMove) {
+          onMove(submittedValue);
+        }
         setValue("");
         setCursor(0);
         return;

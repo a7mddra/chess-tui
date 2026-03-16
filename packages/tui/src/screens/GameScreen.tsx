@@ -2,9 +2,10 @@ import React, { useState, useRef, useCallback, useEffect } from "react";
 import { Box, Text, useApp, useInput, useStdout } from "ink";
 import type { ChildProcess } from "node:child_process";
 import { useRouter, type GameMode } from "@/router/AppRouter";
-import { Board, InputBox } from "@/features";
+import { Board, InputBox, PlayerInfo } from "@/features";
+import { useChessBoard } from "@/features/board/use-chess-board";
 import { HighlightBox } from "@/components";
-import { spawnBoardWindow, DIALOG_HOWTO, getMockGameSnapshot, mod } from "@/lib";
+import { spawnBoardWindow, useBoardIpcServer, DIALOG_HOWTO, getMockGameSnapshot, mod } from "@/lib";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -15,44 +16,6 @@ const DIM_BG = "#2a2a2a";
 const BORDER_COLOR = "#555555";
 
 const BOARD_WIDTH = 50;
-
-// ---------------------------------------------------------------------------
-// Player info
-// ---------------------------------------------------------------------------
-
-type PlayerInfoProps = {
-  name: string;
-  elo: number | null;
-  clock: string;
-  captured: string;
-  advantage: string;
-  isActive?: boolean;
-};
-
-const PlayerInfo = ({
-  name,
-  elo,
-  clock,
-  captured,
-  advantage,
-  isActive = true,
-}: PlayerInfoProps): React.JSX.Element => (
-  <Box flexDirection="column" paddingX={1}>
-    <Box justifyContent="space-between">
-      <Text bold dimColor={!isActive}>
-        {name} ({elo ?? "-"})
-      </Text>
-      <Text backgroundColor={DIM_BG} color={ACCENT} dimColor={!isActive}>
-        {" "}
-        ◴ {clock}{" "}
-      </Text>
-    </Box>
-    <Text color="#aaaaaa" dimColor={!isActive}>
-      {captured}
-      {advantage ? ` ${advantage}` : ""}
-    </Text>
-  </Box>
-);
 
 // ---------------------------------------------------------------------------
 // DVD-bounce animation (for detached state)
@@ -132,7 +95,21 @@ export const GameScreen = ({
   const [dialogLines, setDialogLines] = useState<string[]>(DIALOG_HOWTO.lines);
   const childRef = useRef<ChildProcess | null>(null);
 
+  const sessionId = React.useMemo(() => Math.random().toString(36).slice(2, 9), []);
   const snapshot = getMockGameSnapshot(mode);
+
+  const chessBoard = useChessBoard(snapshot.fen, (uci) => {
+    // Dispatch to real API here in the future
+  });
+
+  useBoardIpcServer(sessionId, {
+    board: chessBoard.board,
+    lastRealMove: chessBoard.lastRealMove,
+    premoveJumps: chessBoard.premoveJumps,
+    selectedSquare: chessBoard.selectedSquare,
+    validMoves: chessBoard.validMoves,
+    isFlipped: mode === "stockfish" ? false : false,
+  });
 
   const toggleDetach = useCallback(() => {
     if (detached) {
@@ -144,13 +121,13 @@ export const GameScreen = ({
       setDetached(false);
     } else {
       // Detach — spawn board in new terminal
-      const child = spawnBoardWindow();
+      const child = spawnBoardWindow(sessionId);
       if (child) {
         childRef.current = child;
         setDetached(true);
       }
     }
-  }, [detached]);
+  }, [detached, sessionId]);
 
   useInput((input, key) => {
     if (key.escape) {
@@ -207,6 +184,8 @@ export const GameScreen = ({
             width={panelWidth - 4}
             onDialogChange={setDialogLines}
             commands={snapshot.commands}
+            onMove={chessBoard.handleUserInput}
+            onCommand={chessBoard.executeCommand}
           />
         </Box>
       </Box>
@@ -228,7 +207,14 @@ export const GameScreen = ({
               <Box position="absolute" marginLeft={1} marginTop={0}>
                 <Text color={ACCENT}>⌞ ⌝</Text>
               </Box>
-              <Board />
+              <Board
+                board={chessBoard.board}
+                lastRealMove={chessBoard.lastRealMove}
+                premoveJumps={chessBoard.premoveJumps}
+                selectedSquare={chessBoard.selectedSquare}
+                validMoves={chessBoard.validMoves}
+                isFlipped={mode === "stockfish" ? false : false}
+              />
             </>
           )}
         </Box>

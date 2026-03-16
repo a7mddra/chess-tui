@@ -129,7 +129,7 @@ const detectTerminal = (): TerminalInfo | null => {
 // Spawn the current application instance in a new terminal window
 // ---------------------------------------------------------------------------
 
-export const spawnBoardWindow = (): ChildProcess | null => {
+export const spawnBoardWindow = (sessionId: string): ChildProcess | null => {
   const terminal = detectTerminal();
   if (!terminal) {
     return null;
@@ -143,6 +143,7 @@ export const spawnBoardWindow = (): ChildProcess | null => {
     ...process.execArgv,
     ...process.argv.slice(1),
     "--detached-board",
+    `--session-id=${sessionId}`
   ];
 
   const args = terminal.buildArgs(innerCmd);

@@ -1,16 +1,27 @@
 {
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["packages/tui/src/*"]
+    },
     "lib": [
       "ES2022"
     ],
     "types": [
-      "node"
+      "node",
+      "react"
     ]
   },
   "include": [
-    "tests/**/*.ts"
+    "tests/**/*.ts",
+    "tests/**/*.tsx"
+  ],
+  "exclude": [
+    "packages"
   ]
 }

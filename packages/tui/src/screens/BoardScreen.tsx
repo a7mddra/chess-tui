@@ -2,6 +2,7 @@ import { render } from "ink";
 import React, { useState } from "react";
 import { Box, Text, useApp, useInput, useStdout } from "ink";
 import { Board } from "@/features";
+import { useChessBoard } from "@/features/board/use-chess-board";
 
 // ---------------------------------------------------------------------------
 // Standalone board window — fills the terminal with just the board
@@ -10,6 +11,7 @@ import { Board } from "@/features";
 const BoardWindow = (): React.JSX.Element => {
   const { exit } = useApp();
   const { stdout } = useStdout();
+  const chessBoard = useChessBoard();
 
   const columns = stdout.columns ?? 40;
   const rows = stdout.rows ?? 20;
@@ -35,7 +37,13 @@ const BoardWindow = (): React.JSX.Element => {
       alignItems="center"
       flexDirection="column"
     >
-      <Board />
+      <Board
+        board={chessBoard.board}
+        lastRealMove={chessBoard.lastRealMove}
+        premoveJumps={chessBoard.premoveJumps}
+        selectedSquare={chessBoard.selectedSquare}
+        validMoves={chessBoard.validMoves}
+      />
     </Box>
   );
 };
