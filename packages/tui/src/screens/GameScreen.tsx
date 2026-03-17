@@ -5,17 +5,45 @@ import { useRouter, type GameMode } from "@/router/AppRouter";
 import { Board, InputBox, PlayerInfo } from "@/features";
 import { useChessBoard } from "@/features/board/use-chess-board";
 import { HighlightBox } from "@/components";
-import { spawnBoardWindow, useBoardIpcServer, DIALOG_HOWTO, getMockGameSnapshot, mod } from "@/lib";
+import {
+  spawnBoardWindow,
+  useBoardIpcServer,
+  DIALOG_HOWTO,
+  DIALOG_BROWSER_START,
+  getMockGameSnapshot,
+  useChesscomOnlineGame,
+  mod,
+} from "@/lib";
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
 const ACCENT = "#b2e068";
-const DIM_BG = "#2a2a2a";
 const BORDER_COLOR = "#555555";
+const SPINNER_COLOR = "#688ba6";
 
 const BOARD_WIDTH = 50;
+const UCI_MOVE_REGEX = /^[a-h][1-8][a-h][1-8][qrbn]?$/i;
+const CHESS_START_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+const SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"] as const;
+
+const CHESSCOM_TEMP_PLAYERS = {
+  top: {
+    name: "opponent",
+    elo: null,
+    clock: "--:--",
+    captured: "",
+    advantage: "",
+  },
+  bottom: {
+    name: "you",
+    elo: null,
+    clock: "--:--",
+    captured: "",
+    advantage: "",
+  },
+};
 
 // ---------------------------------------------------------------------------
 // DVD-bounce animation (for detached state)
@@ -90,18 +118,60 @@ export const GameScreen = ({
 
   const boardWidth = Math.min(BOARD_WIDTH, columns - 25);
   const panelWidth = columns - boardWidth;
+  const playerInfoWidth = Math.max(18, panelWidth - 4);
 
   const [detached, setDetached] = useState(false);
   const [dialogLines, setDialogLines] = useState<string[]>(DIALOG_HOWTO.lines);
+  const [spinnerFrameIndex, setSpinnerFrameIndex] = useState(0);
+  const [lockBridgeDialog, setLockBridgeDialog] = useState(false);
+  const [sessionOrientation, setSessionOrientation] = useState<"w" | "b" | null>(null);
+  const orientationLocked = useRef(false);
+  const stableTimerRef = useRef<NodeJS.Timeout | null>(null);
   const childRef = useRef<ChildProcess | null>(null);
 
   const sessionId = React.useMemo(() => Math.random().toString(36).slice(2, 9), []);
-  const snapshot = getMockGameSnapshot(mode);
+  const mockSnapshot = getMockGameSnapshot(mode);
+  const online = useChesscomOnlineGame(mode === "chesscom");
+
+  const currentFen = mode === "chesscom" ? (online.fen ?? CHESS_START_FEN) : mockSnapshot.fen;
+
+  useEffect(() => {
+    if (mode !== "chesscom" || orientationLocked.current) {
+      return;
+    }
+
+    if (online.boardOrientation) {
+      // Keep it affected by noise dynamically
+      setSessionOrientation(online.boardOrientation);
+
+      if (stableTimerRef.current) {
+        clearTimeout(stableTimerRef.current);
+      }
+
+      stableTimerRef.current = setTimeout(() => {
+        // Once it has been stable for 1000ms, lock it in for the session
+        orientationLocked.current = true;
+      }, 1000);
+    }
+    
+    return () => {
+      if (stableTimerRef.current) clearTimeout(stableTimerRef.current);
+    };
+  }, [mode, online.boardOrientation]);
 
   const chessBoard = useChessBoard(
-    snapshot.fen,
-    (uci) => {
-      // Dispatch to real API here in the future
+    currentFen,
+    (move) => {
+      if (mode !== "chesscom") {
+        return;
+      }
+
+      const normalized = move.trim().toLowerCase();
+      if (!UCI_MOVE_REGEX.test(normalized)) {
+        return;
+      }
+
+      void online.sendMove(normalized);
     },
     {
       onUndoFenDispatch: mode === "stockfish"
@@ -113,13 +183,88 @@ export const GameScreen = ({
     },
   );
 
+  useEffect(() => {
+    if (mode !== "chesscom") {
+      return;
+    }
+
+    if (!online.fen || online.fen === chessBoard.fen) {
+      return;
+    }
+
+    chessBoard.loadFen(online.fen);
+  }, [mode, online.fen, chessBoard]);
+
+  useEffect(() => {
+    if (mode !== "chesscom" || online.bridgeConnection === "connected") {
+      return;
+    }
+
+    const id = setInterval(() => {
+      setSpinnerFrameIndex((prev) => (prev + 1) % SPINNER_FRAMES.length);
+    }, 120);
+
+    return () => {
+      clearInterval(id);
+    };
+  }, [mode, online.bridgeConnection]);
+
+  useEffect(() => {
+    if (mode !== "chesscom") {
+      return;
+    }
+
+    const shouldShowBridgeDialog =
+      online.bridgeConnection === "connected" &&
+      !online.players;
+
+    if (shouldShowBridgeDialog) {
+      setLockBridgeDialog(true);
+      setDialogLines(DIALOG_BROWSER_START.lines);
+      return;
+    }
+
+    if (lockBridgeDialog && online.players) {
+      setLockBridgeDialog(false);
+      setDialogLines(DIALOG_HOWTO.lines);
+    }
+  }, [mode, online.bridgeConnection, online.players, lockBridgeDialog]);
+
+  const topPlayer = mode === "chesscom"
+    ? (online.players?.top ?? CHESSCOM_TEMP_PLAYERS.top)
+    : mockSnapshot.players.top;
+  const bottomPlayer = mode === "chesscom"
+    ? (online.players?.bottom ?? CHESSCOM_TEMP_PLAYERS.bottom)
+    : mockSnapshot.players.bottom;
+
+  const topIsActive = mode === "chesscom"
+    ? online.activePlacement === "top"
+    : chessBoard.turn === "b";
+  const bottomIsActive = mode === "chesscom"
+    ? online.activePlacement === "bottom"
+    : chessBoard.turn === "w";
+  const shouldFlipBoard = mode === "chesscom"
+    ? sessionOrientation === "b"
+    : false;
+  const bridgeLine = online.bridgeConnection === "connected"
+    ? `bridge: ${online.bridgeEndpoint}`
+    : `bridge: ${SPINNER_FRAMES[spinnerFrameIndex] ?? "⠋"} connecting`;
+  const spinnerGlyph = SPINNER_FRAMES[spinnerFrameIndex] ?? "⠋";
+
+  const handleDialogChange = useCallback((lines: string[]) => {
+    if (lockBridgeDialog) {
+      return;
+    }
+    setDialogLines(lines);
+  }, [lockBridgeDialog]);
+
   useBoardIpcServer(sessionId, {
     board: chessBoard.board,
     lastRealMove: chessBoard.lastRealMove,
     premoveJumps: chessBoard.premoveJumps,
     selectedSquare: chessBoard.selectedSquare,
     validMoves: chessBoard.validMoves,
-    isFlipped: mode === "stockfish" ? false : false,
+    isFlipped: shouldFlipBoard,
   });
 
   const toggleDetach = useCallback(() => {
@@ -176,10 +321,20 @@ export const GameScreen = ({
         flexDirection="column"
         paddingTop={1}
       >
-        <Box flexDirection="column" flexGrow={0}>
-          <PlayerInfo {...snapshot.players.top} isActive={false} />
-          <Box height={1} />
-          <PlayerInfo {...snapshot.players.bottom} isActive={true} />
+        <Box flexDirection="column" flexGrow={0} flexShrink={0}>
+          <PlayerInfo {...topPlayer} width={playerInfoWidth} isActive={topIsActive} />
+          <PlayerInfo {...bottomPlayer} width={playerInfoWidth} isActive={bottomIsActive} />
+          {mode === "chesscom" ? (
+            <Box paddingX={1} flexShrink={0}>
+              {online.bridgeConnection === "connected" ? (
+                <Text color={BORDER_COLOR}>{bridgeLine}</Text>
+              ) : (
+                <Text color={BORDER_COLOR}>
+                  bridge: <Text color={SPINNER_COLOR}>{spinnerGlyph}</Text> connecting
+                </Text>
+              )}
+            </Box>
+          ) : null}
         </Box>
         <Box flexGrow={1} />
         <Box flexDirection="column" alignItems="center">
@@ -193,8 +348,8 @@ export const GameScreen = ({
           />
           <InputBox
             width={panelWidth - 4}
-            onDialogChange={setDialogLines}
-            commands={snapshot.commands}
+            onDialogChange={handleDialogChange}
+            commands={mockSnapshot.commands}
             onMove={chessBoard.handleUserInput}
             onCommand={chessBoard.executeCommand}
           />
@@ -224,7 +379,7 @@ export const GameScreen = ({
                 premoveJumps={chessBoard.premoveJumps}
                 selectedSquare={chessBoard.selectedSquare}
                 validMoves={chessBoard.validMoves}
-                isFlipped={mode === "stockfish" ? false : false}
+                isFlipped={shouldFlipBoard}
               />
             </>
           )}

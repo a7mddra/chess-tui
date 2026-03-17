@@ -410,15 +410,37 @@ export const useChessBoard = (
   const loadFen = useCallback(
     (newFen: string) => {
       try {
-        const c = new Chess(newFen);
-        setChess(c);
+        const targetBase = newFen.split(' ').slice(0, 2).join(' ');
+        const currentBase = chess.fen().split(' ').slice(0, 2).join(' ');
+
+        if (targetBase === currentBase) {
+           return;
+        }
+
+        const possibleMoves = chess.moves({ verbose: true });
+        const detectedMove = possibleMoves.find(m => {
+           const clone = new Chess(chess.fen());
+           clone.move(m);
+           return clone.fen().split(' ').slice(0, 2).join(' ') === targetBase;
+        });
+
+        let nextChess: Chess;
+        if (detectedMove) {
+            const clone = new Chess(chess.fen());
+            clone.move(detectedMove);
+            nextChess = clone;
+        } else {
+            nextChess = new Chess(newFen);
+        }
+
+        setChess(nextChess);
         // Try to salvage one premove against new position
-        const { remaining } = flushPremoves(c, premoves);
+        const { remaining } = flushPremoves(nextChess, premoves);
         setPremoves(remaining);
         setUndoStack([]);
       } catch { /* bad FEN */ }
     },
-    [premoves, flushPremoves]
+    [chess, premoves, flushPremoves]
   );
 
   return {

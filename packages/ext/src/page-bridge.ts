@@ -25,6 +25,7 @@ type GameClockSnapshot = {
   fen: string | null;
   user: PlayerClockSnapshot;
   opponent: PlayerClockSnapshot;
+  boardOrientation?: "w" | "b";
 };
 
 interface ChessGame {
@@ -212,7 +213,29 @@ function parseClockToMs(clockText: string | null): number | null {
   return null;
 }
 
+let cachedViewerUsername: string | null = null;
+
+function readViewerUsernameFromProfileLink(): string | null {
+  const profileLink = document.querySelector('a[href*="/member/"][data-user-activity-key="profile"], a.sidebar-link[href*="/member/"]');
+  if (!profileLink) {
+    return null;
+  }
+
+  const href = profileLink.getAttribute("href") ?? "";
+  const match = href.match(/\/member\/([^/?#]+)/i);
+  if (!match || !match[1]) {
+    return null;
+  }
+
+  const username = decodeURIComponent(match[1]).trim();
+  return username.length ? username : null;
+}
+
 function currentUsernameFromContext(): string | null {
+  if (cachedViewerUsername) {
+    return cachedViewerUsername;
+  }
+
   const win = window as Window & {
     context?: UnknownRecord;
     chesscom?: UnknownRecord;
@@ -223,11 +246,19 @@ function currentUsernameFromContext(): string | null {
 
   const fromContext = asRecord(contextUser)?.username;
   if (typeof fromContext === "string" && fromContext.trim().length) {
-    return fromContext.trim();
+    cachedViewerUsername = fromContext.trim();
+    return cachedViewerUsername;
   }
 
   if (typeof chesscomUser === "string" && chesscomUser.trim().length) {
-    return chesscomUser.trim();
+    cachedViewerUsername = chesscomUser.trim();
+    return cachedViewerUsername;
+  }
+
+  const fromProfileLink = readViewerUsernameFromProfileLink();
+  if (fromProfileLink) {
+    cachedViewerUsername = fromProfileLink;
+    return cachedViewerUsername;
   }
 
   return null;
@@ -282,7 +313,7 @@ function extractClockState(playerRoot: Element): {
   return {
     clockText,
     clockMs: parseClockToMs(clockText),
-    isTurn: clockRoot?.classList.contains("clock-player-turn") ?? false
+    isTurn: clockRoot?.classList.contains("clock-player-turn") ?? false,
   };
 }
 
@@ -400,8 +431,17 @@ function readPlayerSnapshot(
     clockText: clockState.clockText,
     clockMs: clockState.clockMs,
     isTurn: clockState.isTurn,
-    placement
+    placement,
   };
+}
+
+let cachedBoardElement: Element | null = null;
+function readBoardOrientation(): "w" | "b" | undefined {
+  if (!cachedBoardElement || !cachedBoardElement.isConnected) {
+    cachedBoardElement = document.querySelector('wc-chess-board, chess-board');
+  }
+  if (!cachedBoardElement) return undefined;
+  return cachedBoardElement.classList.contains('flipped') ? "b" : "w";
 }
 
 function readGameClockSnapshot(fen: string | null): GameClockSnapshot | null {
@@ -430,7 +470,8 @@ function readGameClockSnapshot(fen: string | null): GameClockSnapshot | null {
     takenAt: Date.now(),
     fen,
     user: userSnapshot,
-    opponent: opponentSnapshot
+    opponent: opponentSnapshot,
+    boardOrientation: readBoardOrientation(),
   };
 }
 
@@ -498,7 +539,8 @@ function buildSnapshotSignal(snapshot: GameClockSnapshot | null): string {
     snapshot.user.isTurn ? "1" : "0",
     snapshot.opponent.username ?? "",
     snapshot.opponent.placement,
-    snapshot.opponent.isTurn ? "1" : "0"
+    snapshot.opponent.isTurn ? "1" : "0",
+    snapshot.boardOrientation ?? ""
   ].join("|");
 }
 
