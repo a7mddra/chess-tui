@@ -1,105 +1,37 @@
-# Chess TUI Roadmap
+# Roadmap
 
-## Goal
-Build a production-grade terminal chess app (`cli`) that controls and mirrors live Chess.com games through a Chrome extension (`ext`), then add an offline mode.
+## Current State
 
-## Current Baseline
-- Move bridge works end-to-end (`terminal -> ws -> extension -> chess.com board API`).
-- Live telemetry works (`fen`, usernames, country, elo, clocks with local ticking).
-- Two test entry points:
-  - `npm run test:move-bridge`
-  - `npm run test:live-telemetry`
+chess-tui is feature-complete for core gameplay:
 
-## Strategy
-1. Treat `ext` as a stable adapter.
-2. Shift primary development to `cli + ink`.
-3. Add only targeted `ext` features needed by CLI milestones.
-4. Keep offline mode as a separate phase to avoid scope collision.
+- **Online mode** — play chess.com from terminal, full end-to-end (move injection, FEN streaming, live clocks, player info, elo)
+- **Offline mode** — play against Stockfish with adjustable elo (100–3000)
+- **Bridge protocol v0** — stable WebSocket contract between extension and TUI
+- **Premove system** — fully local, with speculative move generation and queue chaining
+- **Board themes** — 4 themes (Classic, Ocean Breeze, Mahogany, Frosted Glass) with user persistence
+- **Detached board window** — pop-out board in separate terminal for independent zoom/resize
+- **Slash commands** — `/theme`, `/new`, `/resign`, `/flip`, `/diff`, `/undo`
 
-## Milestones
+## Next Priorities
 
-### M1: Lock Bridge Contract (v0)
-Scope:
-- Freeze message schema currently used by move bridge and telemetry.
-- Define compatibility rules for future fields/events.
+### Multi-browser support
+Currently Chrome-only. Extend to Firefox and other Chromium-based browsers. The extension uses standard WebExtension APIs, so Firefox porting is mostly manifest changes.
 
-Done criteria:
-- Contract documented and referenced by CLI and extension.
-- No breaking changes to current tests.
+### Race condition reduction
+The extension polls chess.com's DOM for game state. Fast game transitions (new game, rematch) can cause missed states or stale snapshots. Improve detection reliability with better polling strategies and fallback heuristics.
 
-### M2: CLI Foundation (Ink + State Machine)
-Scope:
-- First `ink` app shell.
-- State machine with core lifecycle states.
-- Render board from `fen`.
-- Render telemetry panel (user/opponent clocks, name, elo, country).
+### Local game review
+Leverage the bundled Stockfish engine for post-game analysis. After finishing a chess.com game, load the game FEN history locally and get move-by-move evaluation — free, ad-less, no chess.com premium needed.
 
-Done criteria:
-- CLI starts, connects, and renders a live game without manual reboots.
-- Clock display updates smoothly from telemetry snapshots + local ticking.
+### npm global package publication
+Package as `npm install -g chess-tui` so users can run it from anywhere. Requires proper bin scripts, cross-platform compatibility testing, and a clean first-run experience.
 
-### M3: Online Play UX (Production Face)
-Scope:
-- Command input for moves and core actions.
-- Error handling and reconnect UX.
-- Session transitions (`waiting`, `in-game`, `game-over`).
+### IPC robustness
+Harden the WebSocket connection lifecycle. Better handling of extension disconnects, Chrome crashes, and stale socket cleanup. Automatic reconnection with state recovery.
 
-Done criteria:
-- Full game playable from terminal against live Chess.com session.
-- Clear user feedback for disconnects, illegal move, and recovery.
+## Backlog
 
-### M4: Extension Phase 2 (Game Events + Controls)
-Scope:
-- Outcome/events stream:
-  - draw offer/accept
-  - resign
-  - timeout
-  - win/lose
-  - abandon/disconnect hints
-- Action commands:
-  - resign
-  - offer draw
-  - new game hooks
-- URL hooks:
-  - start blitz/rapid/bullet
-  - bot game
-  - analysis page
-  - sign-in/sign-out entry points
-
-Done criteria:
-- CLI can drive all core session actions without opening browser UI controls.
-- State machine receives enough events to classify game termination reasons.
-
-### M5: Offline Mode (Separate Track)
-Scope:
-- `chess.js` for legal rules/state.
-- `stockfish` npm package for engine play.
-- Same CLI shell, different backend adapter.
-
-Done criteria:
-- User can switch online/offline modes without changing UI mental model.
-
-## Backlog Buckets
-
-### Watcher/Telemetry
-- Game end detection and reason code normalization.
-- Opponent disconnect/reconnect hints.
-- Network health and stale snapshot detection.
-
-### Input/Commands
-- Resign, draw offer, new game.
-- Optional shortcut keys and confirmation prompts for destructive commands.
-
-### State Machine
-- Distinguish `bridge disconnected` vs `game disconnected`.
-- Deterministic transition policy on reconnect and late events.
-
-### External URL Hooks
-- Start specific time controls.
-- Open current game in browser.
-- Open analysis from active game.
-
-## Guardrails
-- Keep `ext` focused on bridge responsibilities, not business logic.
-- Keep game logic and UX decisions in `cli` state machine.
-- Add fields/events compatibly (append-only where possible).
+- **Draw offer / resign via extension** — currently these use URL hooks (open chess.com pages). Phase 2 bridge protocol would allow direct button injection.
+- **Game outcome events** — extension doesn't yet stream win/loss/draw/timeout events. TUI infers game state from FEN changes.
+- **Network health indicators** — detect degraded connections and warn the user.
+- **Game history browser** — navigate past games, load PGN files.

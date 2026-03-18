@@ -1,7 +1,9 @@
-# Extension Bridge Contract (v0)
+# Bridge Protocol (v0)
+
+The extension bridge is the WebSocket-based communication layer between the terminal app and the Chrome extension. The extension scrapes game state from an active chess.com tab and relays it to the TUI. The TUI sends move commands back through the same channel, which the extension injects via the page's `board.move()` API.
 
 ## Scope
-This document defines the current online bridge contract between CLI/tests and the Chrome extension.
+This document defines the message contract between the TUI (or test harnesses) and the Chrome extension.
 
 ## Transport
 - WebSocket endpoint: `ws://127.0.0.1:8765` (fallback `ws://localhost:8765` in extension client)
@@ -89,15 +91,15 @@ This document defines the current online bridge contract between CLI/tests and t
 ## Planned Extensions (Phase 2)
 
 ### Outbound events
-- `game.outcome` (`win|lose|draw|timeout|abandon`)
-- `game.network` (`degraded|recovered`)
-- `game.offer` (`draw_offer_received`, `draw_offer_cleared`)
+- `game.outcome` (`win|lose|draw|timeout|abandon`) — *not yet implemented*
+- `game.network` (`degraded|recovered`) — *not yet implemented*
+- `game.offer` (`draw_offer_received`, `draw_offer_cleared`) — *not yet implemented*
 
 ### Inbound commands
-- `resign`
-- `offer_draw`
-- `new_game` (with time-control payload)
-- `open_url` (`analysis`, `signin`, `signout`, `new_game`)
+- `resign` — *not yet implemented (TUI uses URL hooks as workaround)*
+- `offer_draw` — *not yet implemented*
+- `new_game` (with time-control payload) — *not yet implemented*
+- `open_url` (`analysis`, `signin`, `signout`, `new_game`) — *partially implemented via `xdg-open` in TUI*
 
 ## Compatibility Policy
 - Additive changes are preferred.
