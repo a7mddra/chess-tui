@@ -6,9 +6,9 @@ import {
   type PremoveEntry,
   type UndoSnapshot,
   type UseChessBoardOptions,
-} from './types';
+} from '@/lib/chess/types';
 import { parseCoordinate, tryMove, tryMoveSwapped } from './move-utils';
-export type { BoardCell, ChessBoardState } from './types';
+export type { BoardCell, ChessBoardState } from '@/lib/chess/types';
 export { useBoardIpcServer, useBoardIpcClient} from "./board-ipc";
 
 // ---------------------------------------------------------------------------

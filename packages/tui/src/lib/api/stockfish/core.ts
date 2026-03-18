@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { userInfo } from "node:os";
 import { Chess } from "chess.js";
-import { PIECE_POWER, getPieceGlyph } from "@/features/board/piece";
+import { PIECE_POWER, getPieceGlyph } from "@/lib/chess/piece";
 import type { ApiPlayer } from "../index";
 import { stockfishProcess } from "./process";
 import type {

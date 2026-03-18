@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir, platform } from "node:os";
 import { dirname, join } from "node:path";
-import { DEFAULT_BOARD_THEME_ID, type BoardThemeId } from "../config/palette";
+import { DEFAULT_BOARD_THEME_ID, type BoardThemeId } from "./config/palette";
 
 export type UserPreferences = {
   boardTheme: BoardThemeId;

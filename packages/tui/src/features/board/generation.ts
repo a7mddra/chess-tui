@@ -1,6 +1,6 @@
 import { Square } from "chess.js";
-import { type BoardCell } from "./types";
-import { PIECE_TPLS, isPieceKind } from "./piece";
+import { type BoardCell } from "@/lib/chess/types";
+import { PIECE_TPLS, isPieceKind } from "@/lib/chess/piece";
 
 const FILES = "abcdefgh";
 const fileToIndex = (f: string) => FILES.indexOf(f);

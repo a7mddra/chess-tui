@@ -7,8 +7,8 @@ import {
   UI_COLORS,
   type BoardThemeId,
 } from "@/lib";
-import type { BoardCell } from "./types";
-import { getPieceGlyph, isPieceKind } from "./piece";
+import type { BoardCell } from "@/lib/chess/types";
+import { getPieceGlyph, isPieceKind } from "@/lib/chess/piece";
 export { useBoardIpcServer, useBoardIpcClient, useChessBoard } from "./use-chess-board";
 
 const FILES = "abcdefgh";

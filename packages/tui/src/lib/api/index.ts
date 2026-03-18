@@ -3,12 +3,17 @@ import {
   type Command,
   type CommandMode,
 } from "../config/commands";
-import type { PlayerInfoProps } from "../../features/players/PlayerInfo";
-import { PIECES_BY_CODE } from "../../features/board/piece";
+import { PIECES_BY_CODE } from "../chess/piece";
 export * from "./chesscom/core";
 export * from "./stockfish/index";
 
-export type ApiPlayer = PlayerInfoProps;
+export type ApiPlayer = {
+  name: string;
+  elo: number | null;
+  clock: string;
+  captured: string;
+  advantage: string;
+};
 
 export type GameSnapshot = {
   mode: CommandMode;

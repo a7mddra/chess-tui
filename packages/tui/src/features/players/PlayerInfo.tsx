@@ -1,7 +1,7 @@
 import React from "react";
 import { Box, Text } from "ink";
 import { UI_COLORS } from "@/lib";
-import { PIECES_BY_CODE } from "@/features/board/piece";
+import { PIECES_BY_CODE } from "@/lib/chess/piece";
 
 const CAPTURED_SORT_ORDER: Record<string, number> = {
   [PIECES_BY_CODE.P.glyph]: PIECES_BY_CODE.P.power,

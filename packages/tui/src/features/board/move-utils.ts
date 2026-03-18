@@ -1,5 +1,5 @@
 import { Chess, type Square } from "chess.js";
-import type { PremoveEntry } from "./types";
+import type { PremoveEntry } from "@/lib/chess/types";
 
 /** Swap the active turn in a FEN string so chess.js will accept a move for the
  *  other side. We also wipe en-passant and leave castling as-is. */

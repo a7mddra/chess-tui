@@ -1,4 +1,4 @@
-import { PIECES_BY_CODE } from "@/features/board/piece";
+import { PIECES_BY_CODE } from "@/lib/chess/piece";
 
 // ---------------------------------------------------------------------------
 // Dialog messages — contextual messages shown in the dialog box

@@ -3,7 +3,7 @@ import {
   getPieceGlyph,
   type PieceKind,
   type PieceColor,
-} from "../../../features/board/piece";
+} from "../../chess/piece";
 import type { ApiPlayer } from "../index";
 import type {
   DerivedOnlineState,
