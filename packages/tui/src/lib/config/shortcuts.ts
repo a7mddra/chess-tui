@@ -18,11 +18,11 @@ const opt = (key: string): string =>
   IS_MAC ? `⌥${key.toUpperCase()}` : `Alt+${key.toUpperCase()}`;
 
 export const SHORTCUTS: Shortcut[] = [
-  { label: "Exit program", keys: mod("c") },
   { label: "Back to welcome", keys: "Tab" },
-  { label: "Clear piece focus", keys: "Esc" },
-  { label: "Detach board", keys: mod("d") },
+  { label: "Deselect piece", keys: "Esc" },
   { label: "Undo last move", keys: mod("z") },
+  { label: "Detach board", keys: mod("d") },
+  { label: "Exit program", keys: mod("c") },
 ];
 
 export const formatShortcutLines = (

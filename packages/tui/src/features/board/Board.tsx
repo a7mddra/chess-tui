@@ -1,22 +1,16 @@
 import React from "react";
 import { Box, Text } from "ink";
-import { BoardCell } from "./use-chess-board";
 import { Square } from "chess.js";
-
-const LIGHT_CELL = "#ebecd0";
-const DARK_CELL = "#739552";
-const LIGHT_YELLOW = "#f5f682";
-const DARK_YELLOW = "#b9ca43";
-const LIGHT_RED = "#af2b2d";
-const DARK_RED = "#b02c2c";
-const PIECE_COLOR = "#000000";
+import {
+  BOARD_THEMES,
+  DEFAULT_BOARD_THEME_ID,
+  UI_COLORS,
+  type BoardThemeId,
+} from "@/lib";
+import type { BoardCell } from "./types";
+import { getPieceGlyph, isPieceKind } from "./piece";
 
 const FILES = "abcdefgh";
-
-const PIECE_SYMBOLS: Record<"w" | "b", Record<string, string>> = {
-  w: { p: "♙", r: "♖", n: "♘", b: "♗", q: "♕", k: "♔" },
-  b: { p: "♟", r: "♜", n: "♞", b: "♝", q: "♛", k: "♚" },
-};
 
 export type BoardProps = {
   board: BoardCell[][];
@@ -25,6 +19,7 @@ export type BoardProps = {
   selectedSquare: string | null;
   validMoves: string[];
   isFlipped?: boolean;
+  themeId?: BoardThemeId;
 };
 
 const getSquareId = (r: number, c: number): Square => {
@@ -39,22 +34,24 @@ const getBgColor = (
   sq: Square,
   lastRealMove: { from: string; to: string } | null,
   premoveJumps: string[],
-  selectedSquare: string | null
+  selectedSquare: string | null,
+  themeId: BoardThemeId,
 ): string => {
+  const theme = BOARD_THEMES[themeId];
   const isDark = (r + c) % 2 !== 0;
   
   const isLastMove = lastRealMove?.from === sq || lastRealMove?.to === sq;
   const isSelected = selectedSquare === sq;
   if (isLastMove || isSelected) {
-    return isDark ? DARK_YELLOW : LIGHT_YELLOW;
+    return isDark ? theme.highlightDark : theme.highlightLight;
   }
 
   const isPremoveJump = premoveJumps.includes(sq);
   if (isPremoveJump) {
-    return isDark ? DARK_RED : LIGHT_RED;
+    return isDark ? theme.premoveDark : theme.premoveLight;
   }
 
-  return isDark ? DARK_CELL : LIGHT_CELL;
+  return isDark ? theme.darkCell : theme.lightCell;
 };
 
 export const Board = ({
@@ -64,6 +61,7 @@ export const Board = ({
   selectedSquare,
   validMoves,
   isFlipped = false,
+  themeId = DEFAULT_BOARD_THEME_ID,
 }: BoardProps): React.JSX.Element => {
   
   const displayBoard = isFlipped ? [...board].reverse().map(row => [...row].reverse()) : board;
@@ -91,7 +89,7 @@ export const Board = ({
 
         return (
           <Text key={`rank-${rankLabel}`}>
-            <Text color="#888888">{`${rankLabel} `}</Text>
+            <Text color={UI_COLORS.boardCoords}>{`${rankLabel} `}</Text>
             {row.map((cell, visualColIndex) => {
               const actualColIndex = isFlipped ? 7 - visualColIndex : visualColIndex;
               const sq = getSquareId(actualRowIndex, actualColIndex);
@@ -102,23 +100,27 @@ export const Board = ({
                 sq,
                 lastRealMove,
                 premoveJumps,
-                selectedSquare
+                selectedSquare,
+                themeId,
               );
 
               const isValidMove = validMoves.includes(sq);
               
               let char = " ";
-              let color = PIECE_COLOR;
+              let color: string = UI_COLORS.textDefault;
               
               if (cell) {
-                char = PIECE_SYMBOLS[cell.color][cell.type] || " ";
+                const kind = cell.type.toLowerCase();
+                char = isPieceKind(kind) ? getPieceGlyph(kind, cell.color) : " ";
                 if (isValidMove && selectedPieceColor && cell.color !== selectedPieceColor) {
                   // Capture square (only when target has enemy piece)
-                  color = "#ff0000";
+                  color = UI_COLORS.captureTarget;
                 }
               } else if (isValidMove) {
                 char = "•";
-                color = (actualRowIndex + actualColIndex) % 2 !== 0 ? "#587040" : "#c4c4b3";
+                color = (actualRowIndex + actualColIndex) % 2 !== 0
+                  ? BOARD_THEMES[themeId].validMoveDotDark
+                  : BOARD_THEMES[themeId].validMoveDotLight;
               }
 
               return (
@@ -135,7 +137,7 @@ export const Board = ({
         );
       })}
       <Text>
-        <Text color="#888888">
+        <Text color={UI_COLORS.boardCoords}>
           {" "}
           {" " + (isFlipped ? [...FILES].reverse() : [...FILES]).map((f) => ` ${f} `).join("")}
         </Text>

@@ -1,3 +1,5 @@
+import { PIECES_BY_CODE } from "@/features/board/piece";
+
 // ---------------------------------------------------------------------------
 // Dialog messages — contextual messages shown in the dialog box
 // ---------------------------------------------------------------------------
@@ -41,11 +43,11 @@ export const DIALOG_WHITE_WON_TIME = d("white_won_time", [
 ]);
 
 export const DIALOG_BLACK_WON_CHECKMATE = d("black_won_checkmate", [
-  "♚ Black won by checkmate.",
+  `${PIECES_BY_CODE.k.glyph} Black won by checkmate.`,
 ]);
 
 export const DIALOG_WHITE_WON_CHECKMATE = d("white_won_checkmate", [
-  "♔ White won by checkmate.",
+  `${PIECES_BY_CODE.K.glyph} White won by checkmate.`,
 ]);
 
 export const DIALOG_BLACK_WON_RESIGNATION = d("black_won_resignation", [

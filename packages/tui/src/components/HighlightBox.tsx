@@ -1,7 +1,8 @@
 import React from "react";
 import { Box, Text } from "ink";
+import { UI_COLORS } from "@/lib";
 
-const DIM_BG = "#2a2a2a";
+const DIM_BG = UI_COLORS.dimBackground;
 
 type HighlightBoxProps = {
   label: string | string[];
@@ -113,7 +114,7 @@ export const HighlightBox = ({
         }
 
         const isSelected = text.startsWith(">");
-        const lineColor = isSelected ? "#688ba6" : "#666666";
+        const lineColor = isSelected ? UI_COLORS.spinner : UI_COLORS.muted;
 
         return (
           <Text key={`hl-${i}`} backgroundColor={DIM_BG} color={lineColor}>

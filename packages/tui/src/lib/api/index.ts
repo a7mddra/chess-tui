@@ -1,5 +1,10 @@
-import { getCommandsForMode, type Command, type CommandMode } from "../config/commands";
+import {
+  getCommandsForMode,
+  type Command,
+  type CommandMode,
+} from "../config/commands";
 import type { PlayerInfoProps } from "../../features/players/PlayerInfo";
+import { PIECES_BY_CODE } from "../../features/board/piece";
 export * from "./chesscom-online";
 
 export type ApiPlayer = PlayerInfoProps;
@@ -15,37 +20,47 @@ export type GameSnapshot = {
   commands: Command[];
 };
 
-export const START_FEN = "rn1qkbnr/pppb1ppp/3pp3/8/2BPP3/2N2N2/PPP2PPP/R1BQK2R w KQkq - 0 6";
+export const START_FEN =
+  "rn1qkbnr/pppb1ppp/3pp3/8/2BPP3/2N2N2/PPP2PPP/R1BQK2R w KQkq - 0 6";
 
 export const CHESSCOM_PLAYERS: GameSnapshot["players"] = {
   top: {
     name: "Magnus",
     elo: 2830,
     clock: "22:10",
-    captured: "♝♞♟♟",
+    captured: [
+      PIECES_BY_CODE.b.glyph,
+      PIECES_BY_CODE.n.glyph,
+      PIECES_BY_CODE.p.glyph,
+      PIECES_BY_CODE.p.glyph,
+    ].join(""),
     advantage: "",
   },
   bottom: {
     name: "Hikaru",
     elo: 2785,
     clock: "25:10",
-    captured: "♗♘♖",
+    captured: [
+      PIECES_BY_CODE.B.glyph,
+      PIECES_BY_CODE.N.glyph,
+      PIECES_BY_CODE.R.glyph,
+    ].join(""),
     advantage: "+3",
   },
 };
 
 export const STOCKFISH_PLAYERS: GameSnapshot["players"] = {
   top: {
-    name: "player 2",
+    name: "Player 2",
     elo: 3550,
-    clock: "--:--",
+    clock: "00:00",
     captured: "",
     advantage: "",
   },
   bottom: {
-    name: "player 1",
+    name: "Player 1",
     elo: 3220,
-    clock: "--:--",
+    clock: "00:00",
     captured: "",
     advantage: "",
   },

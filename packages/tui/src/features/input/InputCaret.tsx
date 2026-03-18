@@ -1,7 +1,8 @@
 import React from "react";
 import { Box, Text } from "ink";
+import { UI_COLORS } from "@/lib";
 
-const DIM_BG = "#2a2a2a";
+const DIM_BG = UI_COLORS.dimBackground;
 
 type InputCaretProps = {
   value: string;
@@ -52,20 +53,20 @@ export const InputCaret = ({
   return (
     <Box position="absolute" marginTop={1} width={width}>
       <Text backgroundColor={DIM_BG}> </Text>
-      <Text backgroundColor={DIM_BG} color={isEmpty ? "#555555" : "#666666"}>
+      <Text backgroundColor={DIM_BG} color={isEmpty ? UI_COLORS.border : UI_COLORS.muted}>
         {visibleBefore}
       </Text>
       <Text backgroundColor="white" color="black">
         {visibleCursor}
       </Text>
       {isEmpty ? (
-        <Text backgroundColor={DIM_BG} color="#555555">
+        <Text backgroundColor={DIM_BG} color={UI_COLORS.border}>
           {placeholderGap}
           {placeholderSlice}
           {" ".repeat(pad)}
         </Text>
       ) : (
-        <Text backgroundColor={DIM_BG} color="#666666">
+        <Text backgroundColor={DIM_BG} color={UI_COLORS.muted}>
           {visibleAfter}
           {" ".repeat(pad)}
         </Text>

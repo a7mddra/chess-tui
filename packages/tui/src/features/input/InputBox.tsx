@@ -7,12 +7,13 @@ import {
   DIALOG_INVALID_INPUT,
   searchCommands,
   formatShortcutLines,
+  UI_COLORS,
 } from "@/lib";
 import { useInputHandler } from "./use-input-handler";
 import { InputCaret } from "./InputCaret";
 import { isValidAlgebraic } from "./validate";
 
-const DIM_BG = "#2a2a2a";
+const DIM_BG = UI_COLORS.dimBackground;
 const SHORTCUT_TIP_MARKER = "? for shortcuts";
 
 type InputBoxProps = {
@@ -21,6 +22,8 @@ type InputBoxProps = {
   commands: Command[];
   onMove?: (uci: string) => void;
   onCommand?: (id: string) => void;
+  disabled?: boolean;
+  defaultDialogLines?: string[];
 };
 
 export const InputBox = ({
@@ -29,6 +32,8 @@ export const InputBox = ({
   commands,
   onMove,
   onCommand,
+  disabled = false,
+  defaultDialogLines,
 }: InputBoxProps): React.JSX.Element => {
   const [value, setValue] = useState("");
   const [cursor, setCursor] = useState(0);
@@ -43,7 +48,8 @@ export const InputBox = ({
   const isCommandMode = value.startsWith("/");
   const filteredCommands = isCommandMode ? searchCommands(value, commands) : [];
   const allowUndoShortcut = commands.some((c) => c.id === "undo");
-  const dirtyHowtoLines = DIALOG_HOWTO.lines.filter(
+  const defaultLines = defaultDialogLines ?? DIALOG_HOWTO.lines;
+  const dirtyHowtoLines = defaultLines.filter(
     (line) => !line.includes(SHORTCUT_TIP_MARKER),
   );
 
@@ -62,7 +68,7 @@ export const InputBox = ({
 
     if (value === "") {
       if (showingShortcuts) return;
-      emitDialogChange(DIALOG_HOWTO.lines);
+      emitDialogChange(defaultLines);
     } else if (isCommandMode) {
       if (filteredCommands.length === 0) {
         emitDialogChange(["No matching command"]);
@@ -95,6 +101,7 @@ export const InputBox = ({
     isCommandMode,
     filteredCommands,
     dirtyHowtoLines,
+    defaultLines,
     errorTimer,
     showingShortcuts,
     emitDialogChange,
@@ -219,6 +226,7 @@ export const InputBox = ({
   }, [onCommand, allowUndoShortcut]);
 
   useInputHandler({
+    disabled,
     value,
     cursor,
     selectedIndex,

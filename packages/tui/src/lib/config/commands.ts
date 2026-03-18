@@ -26,6 +26,7 @@ export const COMMANDS: Command[] = [
     keywords: ["level"],
     mode: "offline",
   },
+  { id: "theme", label: "Change Theme", keywords: ["board", "palette", "skin"], mode: "all" },
   { id: "exit", label: "Exit program", keywords: ["quit"], mode: "all" },
 ];
 

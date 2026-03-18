@@ -1,7 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { useEffect, useMemo, useState } from "react";
 import { WebSocket, WebSocketServer } from "ws";
-import { PIECE_POWER } from "../../features/board/generation";
+import {
+  PIECE_POWER,
+  getPieceGlyph,
+  type PieceKind,
+  type PieceColor,
+} from "../../features/board/piece";
 import type { ApiPlayer } from "./index";
 
 const EXTENSION_PORT = 8765;
@@ -61,12 +66,11 @@ type ExtensionInboundMessage =
       error: string;
     };
 
-type ExtensionOutboundMessage =
-  | {
-      type: "move";
-      uci: string;
-      requestId: string;
-    };
+type ExtensionOutboundMessage = {
+  type: "move";
+  uci: string;
+  requestId: string;
+};
 
 type RelayMessage =
   | ExtensionInboundMessage
@@ -123,6 +127,10 @@ class ChesscomBridge {
     }
   }
 
+  getState(): BridgeState {
+    return this.state;
+  }
+
   subscribe(listener: (state: BridgeState) => void): () => void {
     this.listeners.add(listener);
     listener(this.state);
@@ -131,7 +139,9 @@ class ChesscomBridge {
     };
   }
 
-  async sendMove(uci: string): Promise<{ ok: boolean; fen?: string; error?: string }> {
+  async sendMove(
+    uci: string,
+  ): Promise<{ ok: boolean; fen?: string; error?: string }> {
     const normalized = uci.trim().toLowerCase();
 
     if (!UCI_MOVE_REGEX.test(normalized)) {
@@ -141,7 +151,10 @@ class ChesscomBridge {
       };
     }
 
-    if (!this.extensionSocket || this.extensionSocket.readyState !== WebSocket.OPEN) {
+    if (
+      !this.extensionSocket ||
+      this.extensionSocket.readyState !== WebSocket.OPEN
+    ) {
       return {
         ok: false,
         error: "Extension bridge is not connected.",
@@ -150,41 +163,43 @@ class ChesscomBridge {
 
     const requestId = randomUUID();
 
-    return await new Promise<{ ok: boolean; fen?: string; error?: string }>((resolve) => {
-      const timer = setTimeout(() => {
-        this.pendingMoves.delete(requestId);
-        resolve({
-          ok: false,
-          error: "Timed out waiting for move-result from extension.",
+    return await new Promise<{ ok: boolean; fen?: string; error?: string }>(
+      (resolve) => {
+        const timer = setTimeout(() => {
+          this.pendingMoves.delete(requestId);
+          resolve({
+            ok: false,
+            error: "Timed out waiting for move-result from extension.",
+          });
+        }, MOVE_TIMEOUT_MS);
+
+        this.pendingMoves.set(requestId, { resolve, timer });
+
+        const payload: ExtensionOutboundMessage = {
+          type: "move",
+          requestId,
+          uci: normalized,
+        };
+
+        this.extensionSocket?.send(JSON.stringify(payload), (err) => {
+          if (!err) {
+            return;
+          }
+
+          const pending = this.pendingMoves.get(requestId);
+          if (!pending) {
+            return;
+          }
+
+          clearTimeout(pending.timer);
+          this.pendingMoves.delete(requestId);
+          resolve({
+            ok: false,
+            error: err.message,
+          });
         });
-      }, MOVE_TIMEOUT_MS);
-
-      this.pendingMoves.set(requestId, { resolve, timer });
-
-      const payload: ExtensionOutboundMessage = {
-        type: "move",
-        requestId,
-        uci: normalized,
-      };
-
-      this.extensionSocket?.send(JSON.stringify(payload), (err) => {
-        if (!err) {
-          return;
-        }
-
-        const pending = this.pendingMoves.get(requestId);
-        if (!pending) {
-          return;
-        }
-
-        clearTimeout(pending.timer);
-        this.pendingMoves.delete(requestId);
-        resolve({
-          ok: false,
-          error: err.message,
-        });
-      });
-    });
+      },
+    );
   }
 
   private updateState(next: Partial<BridgeState>): void {
@@ -229,7 +244,9 @@ class ChesscomBridge {
           this.extensionSocket = null;
         }
 
-        this.flushPendingMoves("Extension disconnected before move acknowledgement.");
+        this.flushPendingMoves(
+          "Extension disconnected before move acknowledgement.",
+        );
         this.stopHeartbeat();
         this.updateState({
           extensionConnection: "disconnected",
@@ -266,7 +283,10 @@ class ChesscomBridge {
       socket.send(
         JSON.stringify({
           type: "status",
-          status: this.extensionSocket?.readyState === WebSocket.OPEN ? "connected" : "disconnected",
+          status:
+            this.extensionSocket?.readyState === WebSocket.OPEN
+              ? "connected"
+              : "disconnected",
           detail: "Attached to TUI relay stream.",
         } satisfies RelayMessage),
       );
@@ -289,7 +309,11 @@ class ChesscomBridge {
   }
 
   private handleExtensionInbound(raw: unknown): void {
-    if (typeof raw !== "object" || raw === null || typeof (raw as { type?: unknown }).type !== "string") {
+    if (
+      typeof raw !== "object" ||
+      raw === null ||
+      typeof (raw as { type?: unknown }).type !== "string"
+    ) {
       return;
     }
 
@@ -385,7 +409,10 @@ class ChesscomBridge {
     this.stopHeartbeat();
 
     this.heartbeatTimer = setInterval(() => {
-      if (!this.extensionSocket || this.extensionSocket.readyState !== WebSocket.OPEN) {
+      if (
+        !this.extensionSocket ||
+        this.extensionSocket.readyState !== WebSocket.OPEN
+      ) {
         return;
       }
 
@@ -423,13 +450,19 @@ function formatClockFromMs(ms: number): string {
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
-function computeDisplayClock(player: PlayerClockSnapshot, nowMs: number, snapshotTakenAt: number): string {
+function computeDisplayClock(
+  player: PlayerClockSnapshot,
+  nowMs: number,
+  snapshotTakenAt: number,
+): string {
   if (typeof player.clockMs !== "number") {
-    return player.clockText ?? "--:--";
+    return player.clockText ?? "00:00";
   }
 
   const elapsedSinceSnapshot = Math.max(0, nowMs - snapshotTakenAt);
-  const liveMs = player.isTurn ? Math.max(0, player.clockMs - elapsedSinceSnapshot) : player.clockMs;
+  const liveMs = player.isTurn
+    ? Math.max(0, player.clockMs - elapsedSinceSnapshot)
+    : player.clockMs;
   return formatClockFromMs(liveMs);
 }
 
@@ -446,11 +479,6 @@ const STARTING_COUNTS: Record<PieceCode, number> = {
   r: 2,
   q: 1,
   k: 1,
-};
-
-const PIECE_SYMBOLS: Record<SideColor, Record<PieceCode, string>> = {
-  w: { p: "♙", n: "♘", b: "♗", r: "♖", q: "♕", k: "♔" },
-  b: { p: "♟", n: "♞", b: "♝", r: "♜", q: "♛", k: "♚" },
 };
 
 type MaterialStats = {
@@ -527,13 +555,18 @@ function parseFenMaterial(fen: string | null): MaterialStats | null {
   };
 }
 
-function renderCaptured(captured: Record<PieceCode, number>, targetColor: SideColor): string {
+function renderCaptured(
+  captured: Record<PieceCode, number>,
+  targetColor: SideColor,
+): string {
   const symbols: string[] = [];
 
   for (const piece of CAPTURE_RENDER_ORDER) {
     const count = captured[piece];
     for (let i = 0; i < count; i += 1) {
-      symbols.push(PIECE_SYMBOLS[targetColor][piece]);
+      symbols.push(
+        getPieceGlyph(piece as PieceKind, targetColor as PieceColor),
+      );
     }
   }
 
@@ -547,9 +580,7 @@ function toApiPlayer(
   advantage: string,
 ): ApiPlayer {
   const rawName = player.username ?? "n/a";
-  const name = rawName
-    .replace(/^[\s\u2654-\u265f]+/u, "")
-    .trim() || "n/a";
+  const name = rawName.replace(/^[\s\u2654-\u265f]+/u, "").trim() || "n/a";
 
   return {
     name,
@@ -575,11 +606,15 @@ export type ChesscomOnlineView = {
   extensionStatus: string;
   relayStatus: string;
   socketEvent: string;
-  sendMove: (uci: string) => Promise<{ ok: boolean; fen?: string; error?: string }>;
+  sendMove: (
+    uci: string,
+  ) => Promise<{ ok: boolean; fen?: string; error?: string }>;
 };
 
 export const useChesscomOnlineGame = (enabled: boolean): ChesscomOnlineView => {
-  const [state, setState] = useState<BridgeState>(initialBridgeState);
+  const [state, setState] = useState<BridgeState>(() =>
+    chesscomBridge.getState(),
+  );
   const [nowMs, setNowMs] = useState(() => Date.now());
 
   useEffect(() => {
@@ -621,14 +656,25 @@ export const useChesscomOnlineGame = (enabled: boolean): ChesscomOnlineView => {
     }
 
     const snapshot = state.latestSnapshot;
-    const userClock = computeDisplayClock(snapshot.user, nowMs, snapshot.takenAt);
-    const opponentClock = computeDisplayClock(snapshot.opponent, nowMs, snapshot.takenAt);
+    const userClock = computeDisplayClock(
+      snapshot.user,
+      nowMs,
+      snapshot.takenAt,
+    );
+    const opponentClock = computeDisplayClock(
+      snapshot.opponent,
+      nowMs,
+      snapshot.takenAt,
+    );
 
-    const topSource = snapshot.user.placement === "top" ? snapshot.user : snapshot.opponent;
-    const bottomSource = snapshot.user.placement === "bottom" ? snapshot.user : snapshot.opponent;
+    const topSource =
+      snapshot.user.placement === "top" ? snapshot.user : snapshot.opponent;
+    const bottomSource =
+      snapshot.user.placement === "bottom" ? snapshot.user : snapshot.opponent;
 
     const topClock = topSource === snapshot.user ? userClock : opponentClock;
-    const bottomClock = bottomSource === snapshot.user ? userClock : opponentClock;
+    const bottomClock =
+      bottomSource === snapshot.user ? userClock : opponentClock;
 
     const activePlacement = snapshot.user.isTurn
       ? snapshot.user.placement
@@ -647,9 +693,14 @@ export const useChesscomOnlineGame = (enabled: boolean): ChesscomOnlineView => {
 
     const material = parseFenMaterial(snapshot.fen ?? state.latestFen);
 
-    const userNameReady = typeof snapshot.user.username === "string" && snapshot.user.username.trim().length > 0;
-    const opponentNameReady = typeof snapshot.opponent.username === "string" && snapshot.opponent.username.trim().length > 0;
-    const orientationReady = userNameReady && opponentNameReady && boardOrientation !== null;
+    const userNameReady =
+      typeof snapshot.user.username === "string" &&
+      snapshot.user.username.trim().length > 0;
+    const opponentNameReady =
+      typeof snapshot.opponent.username === "string" &&
+      snapshot.opponent.username.trim().length > 0;
+    const orientationReady =
+      userNameReady && opponentNameReady && boardOrientation !== null;
 
     let topCaptured = "";
     let bottomCaptured = "";
@@ -658,7 +709,10 @@ export const useChesscomOnlineGame = (enabled: boolean): ChesscomOnlineView => {
 
     if (material && topColor && bottomColor) {
       topCaptured = renderCaptured(material.capturedBy[topColor], bottomColor);
-      bottomCaptured = renderCaptured(material.capturedBy[bottomColor], topColor);
+      bottomCaptured = renderCaptured(
+        material.capturedBy[bottomColor],
+        topColor,
+      );
 
       const topScore = material.score[topColor];
       const bottomScore = material.score[bottomColor];
@@ -674,7 +728,12 @@ export const useChesscomOnlineGame = (enabled: boolean): ChesscomOnlineView => {
     return {
       players: {
         top: toApiPlayer(topSource, topClock, topCaptured, topAdvantage),
-        bottom: toApiPlayer(bottomSource, bottomClock, bottomCaptured, bottomAdvantage),
+        bottom: toApiPlayer(
+          bottomSource,
+          bottomClock,
+          bottomCaptured,
+          bottomAdvantage,
+        ),
       },
       activePlacement,
       userPlacement: snapshot.user.placement,

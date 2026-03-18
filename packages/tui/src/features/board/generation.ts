@@ -1,5 +1,6 @@
 import { Square } from "chess.js";
-import { type BoardCell } from "./use-chess-board";
+import { type BoardCell } from "./types";
+import { PIECE_TPLS, isPieceKind } from "./piece";
 
 const FILES = "abcdefgh";
 const fileToIndex = (f: string) => FILES.indexOf(f);
@@ -19,72 +20,6 @@ export const coordsToSq = (r: number, c: number): Square | null => {
   const row = indexToRow(r);
   return `${f}${row}` as Square;
 };
-
-// ---------------------------------------------------------------------------
-// TPL Definitions
-// ---------------------------------------------------------------------------
-
-type PieceTPL = {
-  isSliding: boolean;
-  deltas: [number, number][]; // [d_row, d_col]
-  power: number;
-};
-
-type PieceKind = "p" | "n" | "b" | "r" | "q" | "k";
-
-const PIECE_TPLS: Record<PieceKind, PieceTPL> = {
-  n: {
-    isSliding: false,
-    power: 3,
-    deltas: [
-      [1, 2], [2, 1], [-1, 2], [-2, 1],
-      [1, -2], [2, -1], [-1, -2], [-2, -1],
-    ],
-  },
-  b: {
-    isSliding: true,
-    power: 3,
-    deltas: [[1, 1], [1, -1], [-1, 1], [-1, -1]],
-  },
-  r: {
-    isSliding: true,
-    power: 5,
-    deltas: [[1, 0], [-1, 0], [0, 1], [0, -1]],
-  },
-  q: {
-    isSliding: true,
-    power: 9,
-    deltas: [
-      [1, 0], [-1, 0], [0, 1], [0, -1],
-      [1, 1], [1, -1], [-1, 1], [-1, -1],
-    ],
-  },
-  k: {
-    isSliding: false,
-    power: Number.POSITIVE_INFINITY,
-    deltas: [
-      [1, 0], [-1, 0], [0, 1], [0, -1],
-      [1, 1], [1, -1], [-1, 1], [-1, -1],
-    ],
-  },
-  p: {
-    isSliding: false,
-    power: 1,
-    deltas: [], // Handled specifically
-  },
-};
-
-const isPieceKind = (value: string): value is PieceKind =>
-  value === "p" || value === "n" || value === "b" || value === "r" || value === "q" || value === "k";
-
-export const PIECE_POWER = Object.freeze({
-  p: PIECE_TPLS.p.power,
-  n: PIECE_TPLS.n.power,
-  b: PIECE_TPLS.b.power,
-  r: PIECE_TPLS.r.power,
-  q: PIECE_TPLS.q.power,
-  k: PIECE_TPLS.k.power,
-});
 
 // ---------------------------------------------------------------------------
 // Move Generation

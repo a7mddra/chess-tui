@@ -2,6 +2,7 @@ import { useInput } from "ink";
 import type { Command } from "@/lib";
 
 type UseInputHandlerOptions = {
+  disabled?: boolean;
   value: string;
   cursor: number;
   selectedIndex: number;
@@ -20,6 +21,7 @@ type UseInputHandlerOptions = {
 };
 
 export const useInputHandler = ({
+  disabled,
   value,
   cursor,
   selectedIndex,
@@ -37,6 +39,10 @@ export const useInputHandler = ({
   onAnyAction,
 }: UseInputHandlerOptions): void => {
   useInput((_input, key) => {
+    if (disabled) {
+      return;
+    }
+
     onAnyAction?.();
 
     if (errorTimer) {
@@ -75,14 +81,16 @@ export const useInputHandler = ({
     } else if ((key.ctrl || key.meta) && (_input ?? "").toLowerCase() === "z") {
       onUndoRequest?.();
     } else if (key.upArrow) {
-      const handledByHistory = onHistoryUp?.() ?? false;
-      if (!handledByHistory && isCommandMode) {
-        setSelectedIndex((i) => Math.max(0, i - 1));
+      if (isCommandMode && filteredCommands.length > 0) {
+        setSelectedIndex((i) => (i - 1 + filteredCommands.length) % filteredCommands.length);
+      } else {
+        onHistoryUp?.();
       }
     } else if (key.downArrow) {
-      const handledByHistory = onHistoryDown?.() ?? false;
-      if (!handledByHistory && isCommandMode) {
-        setSelectedIndex((i) => Math.min(filteredCommands.length - 1, i + 1));
+      if (isCommandMode && filteredCommands.length > 0) {
+        setSelectedIndex((i) => (i + 1) % filteredCommands.length);
+      } else {
+        onHistoryDown?.();
       }
     } else if (key.delete) {
       if (cursor > 0) {

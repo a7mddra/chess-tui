@@ -1,90 +1,14 @@
 import { useState, useCallback, useMemo } from 'react';
 import { Chess, Square } from 'chess.js';
 import { getSpeculativeMoves, sqToCoords } from './generation';
-
-export type BoardCell = {
-  square: Square;
-  type: string;
-  color: 'w' | 'b';
-} | null;
-
-export type ChessBoardState = {
-  board: BoardCell[][];
-  lastRealMove: { from: string; to: string } | null;
-  premoveJumps: string[];
-  selectedSquare: string | null;
-  validMoves: string[];
-  turn: 'w' | 'b';
-  fen: string;
-};
-
-type PremoveEntry = {
-  from: Square;
-  to: Square;
-  promotion?: string;
-};
-
-type UseChessBoardOptions = {
-  selfPlay?: boolean;
-  playerColor?: 'w' | 'b';
-  onUndoFenDispatch?: (fen: string) => void;
-};
-
-type UndoSnapshot = {
-  fen: string;
-  premoves: PremoveEntry[];
-  selectedSquare: string | null;
-};
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/** Swap the active turn in a FEN string so chess.js will accept a move for the
- *  other side. We also wipe en-passant and leave castling as-is. */
-const swapTurn = (fen: string): string => {
-  const tokens = fen.split(' ');
-  tokens[1] = tokens[1] === 'w' ? 'b' : 'w';
-  tokens[3] = '-'; // clear en-passant to avoid invalid-fen errors
-  return tokens.join(' ');
-};
-
-/** Try a coordinate move on a Chess instance.  Returns the new Chess (clone)
- *  if the move was legal, or null. */
-const tryMove = (c: Chess, entry: PremoveEntry): Chess | null => {
-  const clone = new Chess(c.fen());
-  try {
-    clone.move({ from: entry.from, to: entry.to, promotion: entry.promotion });
-    return clone;
-  } catch {
-    return null;
-  }
-};
-
-/** Same as tryMove but first swaps the active colour so we can test a premove
- *  that belongs to the *other* side. */
-const tryMoveSwapped = (c: Chess, entry: PremoveEntry): Chess | null => {
-  const clone = new Chess(swapTurn(c.fen()));
-  try {
-    clone.move({ from: entry.from, to: entry.to, promotion: entry.promotion });
-    return clone;
-  } catch {
-    return null;
-  }
-};
-
-/** Parse a raw user string (e.g. "e2e4", "e7e8q", "Nf3") into a PremoveEntry
- *  if it looks like a coordinate-based move.  Returns null for SAN-style input
- *  so the caller can fall back. */
-const parseCoordinate = (input: string): PremoveEntry | null => {
-  const m = /^([a-h][1-8])([a-h][1-8])([qrbn])?$/i.exec(input);
-  if (!m) return null;
-  return {
-    from: m[1]!.toLowerCase() as Square,
-    to: m[2]!.toLowerCase() as Square,
-    promotion: m[3]?.toLowerCase(),
-  };
-};
+import {
+  type BoardCell,
+  type PremoveEntry,
+  type UndoSnapshot,
+  type UseChessBoardOptions,
+} from './types';
+import { parseCoordinate, tryMove, tryMoveSwapped } from './move-utils';
+export type { BoardCell, ChessBoardState } from './types';
 
 // ---------------------------------------------------------------------------
 // Hook

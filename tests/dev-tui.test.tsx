@@ -3,11 +3,11 @@ import React, { useState } from "react";
 import { Board, InputBox, PlayerInfo } from "@/features";
 import { useChessBoard } from "@/features/board/use-chess-board";
 import { HighlightBox } from "@/components";
-import { getMockGameSnapshot } from "@/lib";
+import { getMockGameSnapshot, UI_COLORS } from "@/lib";
 import { DIALOG_HOWTO } from "@/lib/config/dialogs";
 
-const ACCENT = "#b2e068";
-const BORDER_COLOR = "#555555";
+const ACCENT = UI_COLORS.accent;
+const BORDER_COLOR = UI_COLORS.border;
 const BOARD_WIDTH = 50;
 
 const DevScreen = (): React.JSX.Element => {

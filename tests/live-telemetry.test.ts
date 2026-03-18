@@ -80,13 +80,19 @@ function formatClockFromMs(ms: number): string {
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
-function computeDisplayClock(player: PlayerClockSnapshot, nowMs: number, snapshotTakenAt: number): string {
+function computeDisplayClock(
+  player: PlayerClockSnapshot,
+  nowMs: number,
+  snapshotTakenAt: number,
+): string {
   if (typeof player.clockMs !== "number") {
-    return player.clockText ?? "--:--";
+    return player.clockText ?? "00:00";
   }
 
   const elapsedSinceSnapshot = Math.max(0, nowMs - snapshotTakenAt);
-  const liveMs = player.isTurn ? Math.max(0, player.clockMs - elapsedSinceSnapshot) : player.clockMs;
+  const liveMs = player.isTurn
+    ? Math.max(0, player.clockMs - elapsedSinceSnapshot)
+    : player.clockMs;
   return formatClockFromMs(liveMs);
 }
 
@@ -101,44 +107,71 @@ function drawWatcherScreen(): void {
 
   if (!latestSnapshot) {
     process.stdout.write("\nWaiting for first game snapshot...\n");
-    process.stdout.write("Tip: run `npm run test:move-bridge`, then make a move on chess.com.\n");
+    process.stdout.write(
+      "Tip: run `npm run test:move-bridge`, then make a move on chess.com.\n",
+    );
     process.stdout.write("Press Ctrl+C to stop.\n");
     return;
   }
 
   latestFen = latestSnapshot.fen ?? latestFen;
-  const userClock = computeDisplayClock(latestSnapshot.user, now, latestSnapshot.takenAt);
-  const opponentClock = computeDisplayClock(latestSnapshot.opponent, now, latestSnapshot.takenAt);
-  const boardOrientation = latestSnapshot.boardOrientation === "b"
-    ? "flipped (black)"
-    : latestSnapshot.boardOrientation === "w"
-      ? "normal (white)"
-      : "unknown";
+  const userClock = computeDisplayClock(
+    latestSnapshot.user,
+    now,
+    latestSnapshot.takenAt,
+  );
+  const opponentClock = computeDisplayClock(
+    latestSnapshot.opponent,
+    now,
+    latestSnapshot.takenAt,
+  );
+  const boardOrientation =
+    latestSnapshot.boardOrientation === "b"
+      ? "flipped (black)"
+      : latestSnapshot.boardOrientation === "w"
+        ? "normal (white)"
+        : "unknown";
 
   process.stdout.write(`Latest FEN: ${latestFen ?? "n/a"}\n`);
   process.stdout.write(`Board orientation: ${boardOrientation}\n`);
-  process.stdout.write(`Snapshot TS: ${new Date(latestSnapshot.takenAt).toISOString()}\n`);
+  process.stdout.write(
+    `Snapshot TS: ${new Date(latestSnapshot.takenAt).toISOString()}\n`,
+  );
   process.stdout.write("\n");
 
   process.stdout.write("user>\n");
   process.stdout.write(`username> ${latestSnapshot.user.username ?? "n/a"}\n`);
-  process.stdout.write(`nationality> ${latestSnapshot.user.nationality ?? "n/a"}\n`);
+  process.stdout.write(
+    `nationality> ${latestSnapshot.user.nationality ?? "n/a"}\n`,
+  );
   process.stdout.write(`elo> ${latestSnapshot.user.elo ?? "n/a"}\n`);
-  process.stdout.write(`time> ${userClock}${latestSnapshot.user.isTurn ? " (turn)" : ""}\n`);
+  process.stdout.write(
+    `time> ${userClock}${latestSnapshot.user.isTurn ? " (turn)" : ""}\n`,
+  );
 
   process.stdout.write("---\n");
 
   process.stdout.write("opp>\n");
-  process.stdout.write(`username> ${latestSnapshot.opponent.username ?? "n/a"}\n`);
-  process.stdout.write(`nationality> ${latestSnapshot.opponent.nationality ?? "n/a"}\n`);
+  process.stdout.write(
+    `username> ${latestSnapshot.opponent.username ?? "n/a"}\n`,
+  );
+  process.stdout.write(
+    `nationality> ${latestSnapshot.opponent.nationality ?? "n/a"}\n`,
+  );
   process.stdout.write(`elo> ${latestSnapshot.opponent.elo ?? "n/a"}\n`);
-  process.stdout.write(`time> ${opponentClock}${latestSnapshot.opponent.isTurn ? " (turn)" : ""}\n`);
+  process.stdout.write(
+    `time> ${opponentClock}${latestSnapshot.opponent.isTurn ? " (turn)" : ""}\n`,
+  );
 
   process.stdout.write("\nPress Ctrl+C to stop.\n");
 }
 
 function handleIncoming(raw: unknown): void {
-  if (typeof raw !== "object" || raw === null || typeof (raw as { type?: unknown }).type !== "string") {
+  if (
+    typeof raw !== "object" ||
+    raw === null ||
+    typeof (raw as { type?: unknown }).type !== "string"
+  ) {
     return;
   }
 
@@ -203,7 +236,11 @@ function connectRelay(): void {
     return;
   }
 
-  if (relaySocket && (relaySocket.readyState === WebSocket.OPEN || relaySocket.readyState === WebSocket.CONNECTING)) {
+  if (
+    relaySocket &&
+    (relaySocket.readyState === WebSocket.OPEN ||
+      relaySocket.readyState === WebSocket.CONNECTING)
+  ) {
     return;
   }
 
@@ -280,7 +317,11 @@ function shutdown(): void {
     reconnectTimer = null;
   }
 
-  if (relaySocket && (relaySocket.readyState === WebSocket.OPEN || relaySocket.readyState === WebSocket.CONNECTING)) {
+  if (
+    relaySocket &&
+    (relaySocket.readyState === WebSocket.OPEN ||
+      relaySocket.readyState === WebSocket.CONNECTING)
+  ) {
     relaySocket.close();
   }
 

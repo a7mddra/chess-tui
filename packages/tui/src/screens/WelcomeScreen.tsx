@@ -1,7 +1,13 @@
 import React, { Fragment, type ReactNode, useMemo, useState } from "react";
 import { Box, Text, useApp, useInput, useStdout } from "ink";
 import { useRouter } from "@/router/AppRouter";
-import { openExternalUrl, github } from "@/lib";
+import {
+  openExternalUrl,
+  github,
+  UI_COLORS,
+  WELCOME_LOGO_GRADIENT,
+  WELCOME_LOGO_OVERRIDES,
+} from "@/lib";
 
 const CURSOR_GLYPH = "➣";
 const MIN_INNER_FRAME_WIDTH = 67;
@@ -16,34 +22,9 @@ const LOGO_LINES = [
   " ╚══════ ╚════╝╚═╝  ╚═╝╚══════╝╚══════╝╚══════╝  ╚═╝  ╚═════╝╚═╝",
 ] as const;
 
-const LOGO_GRADIENT = [
-  "#ffffff",
-  "#f5f5f5",
-  "#ebebeb",
-  "#e1e1e1",
-  "#d7d7d7",
-  "#cdcdcd",
-] as const;
+const LOGO_GRADIENT = WELCOME_LOGO_GRADIENT;
 
-type LogoColorOverride = {
-  line: number;
-  start: number;
-  end: number;
-  color: string;
-};
-
-const LOGO_COLOR_OVERRIDES: readonly LogoColorOverride[] = [
-  { line: 1, start: 4, end: 5, color: "#b3e069" },
-  { line: 2, start: 3, end: 6, color: "#81b64c" },
-  { line: 3, start: 4, end: 5, color: "#81b64c" },
-  { line: 4, start: 4, end: 5, color: "#81b64c" },
-  { line: 5, start: 3, end: 5, color: "#81b64c" },
-  { line: 6, start: 1, end: 4, color: "#81b64c" },
-  { line: 1, start: 6, end: 6, color: "#5e9949" },
-  { line: 3, start: 3, end: 3, color: "#5e9949" },
-  { line: 6, start: 4, end: 7, color: "#5e9949" },
-  { line: 7, start: 0, end: 7, color: "#5e9949" },
-] as const;
+const LOGO_COLOR_OVERRIDES = WELCOME_LOGO_OVERRIDES;
 
 const getLogoBaseColor = (lineIndex: number): string =>
   LOGO_GRADIENT[Math.min(lineIndex, LOGO_GRADIENT.length - 1)] ??
@@ -88,7 +69,7 @@ const renderLogoLine = (line: string, lineIndex: number): ReactNode => {
   ));
 };
 
-const ACCENT_COLOR = "#b2e068";
+const ACCENT_COLOR = UI_COLORS.accent;
 
 const MENU_ITEMS = [
   { id: "chesscom", label: "♟𝗰𝗵𝗲𝘀𝘀.com" },
