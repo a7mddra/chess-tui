@@ -26,6 +26,7 @@ type PremoveEntry = {
 
 type UseChessBoardOptions = {
   selfPlay?: boolean;
+  playerColor?: 'w' | 'b';
   onUndoFenDispatch?: (fen: string) => void;
 };
 
@@ -95,6 +96,7 @@ export const useChessBoard = (
   options: UseChessBoardOptions = {}
 ) => {
   const selfPlay = options.selfPlay ?? false;
+  const playerColor = options.playerColor;
   const onUndoFenDispatch = options.onUndoFenDispatch;
   const [chess, setChess] = useState(() => new Chess(initialFen));
   const [premoves, setPremoves] = useState<PremoveEntry[]>([]);
@@ -175,6 +177,15 @@ export const useChessBoard = (
     const cell = board[r]?.[c];
     if (!cell) return [];
 
+    const canControlColor = selfPlay
+      ? true
+      : playerColor
+        ? cell.color === playerColor
+        : cell.color === realTurn;
+    if (!canControlColor) {
+      return [];
+    }
+
     if (cell.color === realTurn) {
       return chess
         .moves({ square: selectedSquare as Square, verbose: true })
@@ -182,7 +193,7 @@ export const useChessBoard = (
     }
 
     return getSpeculativeMoves(board, selectedSquare as Square, cell.color);
-  }, [board, selectedSquare, realTurn, chess]);
+  }, [board, selectedSquare, realTurn, chess, selfPlay, playerColor]);
 
   // Squares that should be highlighted red (premove path)
   const premoveJumps = useMemo(() => {
@@ -267,6 +278,16 @@ export const useChessBoard = (
       const cell = board[r]?.[c];
       
       if (cell) {
+        const canControlColor = selfPlay
+          ? true
+          : playerColor
+            ? cell.color === playerColor
+            : cell.color === realTurn;
+
+        if (!canControlColor) {
+          return false;
+        }
+
         if (cell.color === realTurn) {
           return false;
         }
@@ -282,7 +303,7 @@ export const useChessBoard = (
 
       return false;
     },
-    [chess, board, realTurn, premoves, flushPremoves, onMoveDispatch, pushUndoSnapshot]
+    [chess, board, realTurn, premoves, flushPremoves, onMoveDispatch, pushUndoSnapshot, selfPlay, playerColor]
   );
 
   // -------------------------------------------------------------------------
@@ -296,6 +317,25 @@ export const useChessBoard = (
       // -- Square-click mode (two sequential single-square inputs combine) --
       if (/^[a-h][1-8]$/i.test(normalized)) {
         const sq = normalized.toLowerCase() as Square;
+
+        const canSelectSquare = (target: Square): boolean => {
+          const [tr, tc] = sqToCoords(target);
+          const targetCell = board[tr]?.[tc];
+          if (!targetCell) {
+            return false;
+          }
+
+          if (selfPlay) {
+            return true;
+          }
+
+          if (playerColor) {
+            return targetCell.color === playerColor;
+          }
+
+          return targetCell.color === realTurn;
+        };
+
         if (selectedSquare) {
           const entry: PremoveEntry = {
             from: selectedSquare as Square,
@@ -303,11 +343,13 @@ export const useChessBoard = (
           };
           const success = attemptMove(entry);
           if (!success) {
-            // Not a valid move from selectedSquare to sq – reselect
-            setSelectedSquare(sq);
+            // Not a valid move from selectedSquare to sq – reselect only if controllable
+            setSelectedSquare(canSelectSquare(sq) ? sq : null);
           }
         } else {
-          setSelectedSquare(sq);
+          if (canSelectSquare(sq)) {
+            setSelectedSquare(sq);
+          }
         }
         return;
       }
@@ -335,7 +377,7 @@ export const useChessBoard = (
 
       setSelectedSquare(null);
     },
-    [selectedSquare, attemptMove, chess, premoves, flushPremoves, onMoveDispatch, pushUndoSnapshot]
+    [selectedSquare, attemptMove, chess, premoves, flushPremoves, onMoveDispatch, pushUndoSnapshot, board, selfPlay, playerColor, realTurn]
   );
 
   // -------------------------------------------------------------------------
@@ -455,5 +497,8 @@ export const useChessBoard = (
     applyOpponentMove,
     executeCommand,
     loadFen,
+    clearSelection: () => setSelectedSquare(null),
+    clearPremoves: () => setPremoves([]),
+    hasPremoves: premoves.length > 0,
   };
 };

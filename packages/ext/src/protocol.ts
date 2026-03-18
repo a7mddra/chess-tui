@@ -70,6 +70,7 @@ export type GameClockSnapshot = {
   fen: string | null;
   user: PlayerClockSnapshot;
   opponent: PlayerClockSnapshot;
+  boardOrientation?: "w" | "b";
 };
 
 export type ContentToBackgroundMessage =
@@ -210,6 +211,7 @@ export function isGameClockSnapshot(value: unknown): value is GameClockSnapshot 
     asOptionalNumber(data.takenAt) !== undefined &&
     (typeof data.fen === "string" || data.fen === null) &&
     isPlayerClockSnapshot(data.user) &&
-    isPlayerClockSnapshot(data.opponent)
+    isPlayerClockSnapshot(data.opponent) &&
+    (typeof data.boardOrientation === "undefined" || data.boardOrientation === "w" || data.boardOrientation === "b")
   );
 }

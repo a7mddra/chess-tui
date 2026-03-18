@@ -20,6 +20,7 @@ type GameClockSnapshot = {
   fen: string | null;
   user: PlayerClockSnapshot;
   opponent: PlayerClockSnapshot;
+  boardOrientation?: "w" | "b";
 };
 
 type IncomingMessage =
@@ -108,8 +109,14 @@ function drawWatcherScreen(): void {
   latestFen = latestSnapshot.fen ?? latestFen;
   const userClock = computeDisplayClock(latestSnapshot.user, now, latestSnapshot.takenAt);
   const opponentClock = computeDisplayClock(latestSnapshot.opponent, now, latestSnapshot.takenAt);
+  const boardOrientation = latestSnapshot.boardOrientation === "b"
+    ? "flipped (black)"
+    : latestSnapshot.boardOrientation === "w"
+      ? "normal (white)"
+      : "unknown";
 
   process.stdout.write(`Latest FEN: ${latestFen ?? "n/a"}\n`);
+  process.stdout.write(`Board orientation: ${boardOrientation}\n`);
   process.stdout.write(`Snapshot TS: ${new Date(latestSnapshot.takenAt).toISOString()}\n`);
   process.stdout.write("\n");
 

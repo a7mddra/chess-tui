@@ -67,6 +67,21 @@ export const Board = ({
 }: BoardProps): React.JSX.Element => {
   
   const displayBoard = isFlipped ? [...board].reverse().map(row => [...row].reverse()) : board;
+  const selectedPieceColor = (() => {
+    if (!selectedSquare) {
+      return null;
+    }
+
+    const file = selectedSquare.charAt(0);
+    const rank = Number.parseInt(selectedSquare.charAt(1), 10);
+    const col = FILES.indexOf(file);
+    const row = 8 - rank;
+    if (col < 0 || row < 0 || row > 7 || Number.isNaN(rank)) {
+      return null;
+    }
+
+    return board[row]?.[col]?.color ?? null;
+  })();
   
   return (
     <Box flexDirection="column">
@@ -97,8 +112,8 @@ export const Board = ({
               
               if (cell) {
                 char = PIECE_SYMBOLS[cell.color][cell.type] || " ";
-                if (isValidMove) {
-                  // Capture square
+                if (isValidMove && selectedPieceColor && cell.color !== selectedPieceColor) {
+                  // Capture square (only when target has enemy piece)
                   color = "#ff0000";
                 }
               } else if (isValidMove) {

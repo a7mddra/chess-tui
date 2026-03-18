@@ -100,8 +100,7 @@ export const DIALOG_INVALID_INPUT = d("invalid_input", [
 // -- Browser / external game -----------------------------------------------
 
 export const DIALOG_BROWSER_START = d("browser_start", [
-  "Open your browser and start",
-  "a game, then refresh this tab.",
+  "open your browser and start a game, or reload a previously opened tab.",
 ]);
 
 // -- Stockfish / AI --------------------------------------------------------

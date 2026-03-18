@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
-import { Box, Text, useApp, useInput, useStdout } from "ink";
+import { Box, Text, useInput, useStdout } from "ink";
 import type { ChildProcess } from "node:child_process";
+import process from "node:process";
 import { useRouter, type GameMode } from "@/router/AppRouter";
 import { Board, InputBox, PlayerInfo } from "@/features";
 import { useChessBoard } from "@/features/board/use-chess-board";
@@ -27,6 +28,7 @@ const BOARD_WIDTH = 50;
 const UCI_MOVE_REGEX = /^[a-h][1-8][a-h][1-8][qrbn]?$/i;
 const CHESS_START_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 const SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"] as const;
+const EXIT_CONFIRM_TIMEOUT_MS = 2000;
 
 const CHESSCOM_TEMP_PLAYERS = {
   top: {
@@ -110,7 +112,6 @@ export const GameScreen = ({
   mode,
 }: GameScreenProps): React.JSX.Element => {
   const { navigate } = useRouter();
-  const { exit } = useApp();
   const { stdout } = useStdout();
 
   const columns = stdout.columns ?? 80;
@@ -124,9 +125,8 @@ export const GameScreen = ({
   const [dialogLines, setDialogLines] = useState<string[]>(DIALOG_HOWTO.lines);
   const [spinnerFrameIndex, setSpinnerFrameIndex] = useState(0);
   const [lockBridgeDialog, setLockBridgeDialog] = useState(false);
-  const [sessionOrientation, setSessionOrientation] = useState<"w" | "b" | null>(null);
-  const orientationLocked = useRef(false);
-  const stableTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [exitConfirmArmed, setExitConfirmArmed] = useState(false);
+  const exitConfirmTimerRef = useRef<NodeJS.Timeout | null>(null);
   const childRef = useRef<ChildProcess | null>(null);
 
   const sessionId = React.useMemo(() => Math.random().toString(36).slice(2, 9), []);
@@ -134,30 +134,6 @@ export const GameScreen = ({
   const online = useChesscomOnlineGame(mode === "chesscom");
 
   const currentFen = mode === "chesscom" ? (online.fen ?? CHESS_START_FEN) : mockSnapshot.fen;
-
-  useEffect(() => {
-    if (mode !== "chesscom" || orientationLocked.current) {
-      return;
-    }
-
-    if (online.boardOrientation) {
-      // Keep it affected by noise dynamically
-      setSessionOrientation(online.boardOrientation);
-
-      if (stableTimerRef.current) {
-        clearTimeout(stableTimerRef.current);
-      }
-
-      stableTimerRef.current = setTimeout(() => {
-        // Once it has been stable for 1000ms, lock it in for the session
-        orientationLocked.current = true;
-      }, 1000);
-    }
-    
-    return () => {
-      if (stableTimerRef.current) clearTimeout(stableTimerRef.current);
-    };
-  }, [mode, online.boardOrientation]);
 
   const chessBoard = useChessBoard(
     currentFen,
@@ -174,6 +150,7 @@ export const GameScreen = ({
       void online.sendMove(normalized);
     },
     {
+      playerColor: mode === "chesscom" ? (online.boardOrientation ?? undefined) : undefined,
       onUndoFenDispatch: mode === "stockfish"
         ? (fen) => {
             // Stockfish offline path is stateless-per-request.
@@ -214,17 +191,15 @@ export const GameScreen = ({
       return;
     }
 
-    const shouldShowBridgeDialog =
-      online.bridgeConnection === "connected" &&
-      !online.players;
+    const shouldLockDialog = online.bridgeConnection === "connected" && !online.players;
 
-    if (shouldShowBridgeDialog) {
+    if (shouldLockDialog) {
       setLockBridgeDialog(true);
       setDialogLines(DIALOG_BROWSER_START.lines);
       return;
     }
 
-    if (lockBridgeDialog && online.players) {
+    if (lockBridgeDialog) {
       setLockBridgeDialog(false);
       setDialogLines(DIALOG_HOWTO.lines);
     }
@@ -236,6 +211,10 @@ export const GameScreen = ({
   const bottomPlayer = mode === "chesscom"
     ? (online.players?.bottom ?? CHESSCOM_TEMP_PLAYERS.bottom)
     : mockSnapshot.players.bottom;
+  const isBridgeWaitingForGame =
+    mode === "chesscom" &&
+    online.bridgeConnection === "connected" &&
+    !online.players;
 
   const topIsActive = mode === "chesscom"
     ? online.activePlacement === "top"
@@ -243,13 +222,19 @@ export const GameScreen = ({
   const bottomIsActive = mode === "chesscom"
     ? online.activePlacement === "bottom"
     : chessBoard.turn === "w";
+  const liveOrientation = mode === "chesscom" ? online.boardOrientation : null;
   const shouldFlipBoard = mode === "chesscom"
-    ? sessionOrientation === "b"
+    ? liveOrientation === "b"
     : false;
   const bridgeLine = online.bridgeConnection === "connected"
-    ? `bridge: ${online.bridgeEndpoint}`
-    : `bridge: ${SPINNER_FRAMES[spinnerFrameIndex] ?? "⠋"} connecting`;
+    ? `${online.bridgeEndpoint}`
+    : `${SPINNER_FRAMES[spinnerFrameIndex] ?? "⠋"} connecting`;
   const spinnerGlyph = SPINNER_FRAMES[spinnerFrameIndex] ?? "⠋";
+  const footerTip = exitConfirmArmed
+    ? "press ctrl+c again to exit"
+    : detached
+      ? `${mod("d")}: restore board`
+      : `${mod("d")}: detach board`;
 
   const handleDialogChange = useCallback((lines: string[]) => {
     if (lockBridgeDialog) {
@@ -285,15 +270,80 @@ export const GameScreen = ({
     }
   }, [detached, sessionId]);
 
-  useInput((input, key) => {
-    if (key.escape) {
-      // Kill detached window on exit
-      if (childRef.current) {
-        childRef.current.kill();
-        childRef.current = null;
+  const handleBackToWelcome = useCallback(() => {
+    if (childRef.current) {
+      childRef.current.kill();
+      childRef.current = null;
+    }
+    navigate("welcome");
+  }, [navigate]);
+
+  useEffect(() => {
+    return () => {
+      if (exitConfirmTimerRef.current) {
+        clearTimeout(exitConfirmTimerRef.current);
+        exitConfirmTimerRef.current = null;
       }
-      navigate("welcome");
+    };
+  }, []);
+
+  useInput((input, key) => {
+    if (key.tab || input === "\t") {
+      handleBackToWelcome();
       return;
+    }
+
+    if (isBridgeWaitingForGame) {
+      if (key.ctrl && input.toLowerCase() === "c") {
+        if (exitConfirmArmed) {
+          if (exitConfirmTimerRef.current) {
+            clearTimeout(exitConfirmTimerRef.current);
+            exitConfirmTimerRef.current = null;
+          }
+
+          if (childRef.current) {
+            childRef.current.kill();
+            childRef.current = null;
+          }
+          process.exit(0);
+          return;
+        }
+
+        setExitConfirmArmed(true);
+        if (exitConfirmTimerRef.current) {
+          clearTimeout(exitConfirmTimerRef.current);
+        }
+        exitConfirmTimerRef.current = setTimeout(() => {
+          setExitConfirmArmed(false);
+          exitConfirmTimerRef.current = null;
+        }, EXIT_CONFIRM_TIMEOUT_MS);
+
+        return;
+      }
+
+      return;
+    }
+
+    if (key.escape) {
+      if (chessBoard.selectedSquare) {
+        chessBoard.clearSelection();
+        return;
+      }
+
+      if (chessBoard.hasPremoves) {
+        chessBoard.clearPremoves();
+        return;
+      }
+
+      return;
+    }
+
+    if (exitConfirmArmed && !(key.ctrl && input.toLowerCase() === "c")) {
+      setExitConfirmArmed(false);
+      if (exitConfirmTimerRef.current) {
+        clearTimeout(exitConfirmTimerRef.current);
+        exitConfirmTimerRef.current = null;
+      }
     }
 
     if (key.ctrl && input.toLowerCase() === "d") {
@@ -302,11 +352,30 @@ export const GameScreen = ({
     }
 
     if (key.ctrl && input.toLowerCase() === "c") {
-      if (childRef.current) {
-        childRef.current.kill();
-        childRef.current = null;
+      if (exitConfirmArmed) {
+        if (exitConfirmTimerRef.current) {
+          clearTimeout(exitConfirmTimerRef.current);
+          exitConfirmTimerRef.current = null;
+        }
+
+        if (childRef.current) {
+          childRef.current.kill();
+          childRef.current = null;
+        }
+        process.exit(0);
+        return;
       }
-      exit();
+
+      setExitConfirmArmed(true);
+      if (exitConfirmTimerRef.current) {
+        clearTimeout(exitConfirmTimerRef.current);
+      }
+      exitConfirmTimerRef.current = setTimeout(() => {
+        setExitConfirmArmed(false);
+        exitConfirmTimerRef.current = null;
+      }, EXIT_CONFIRM_TIMEOUT_MS);
+
+      return;
     }
   });
 
@@ -319,22 +388,10 @@ export const GameScreen = ({
         width={panelWidth}
         height={rows}
         flexDirection="column"
-        paddingTop={1}
       >
         <Box flexDirection="column" flexGrow={0} flexShrink={0}>
           <PlayerInfo {...topPlayer} width={playerInfoWidth} isActive={topIsActive} />
           <PlayerInfo {...bottomPlayer} width={playerInfoWidth} isActive={bottomIsActive} />
-          {mode === "chesscom" ? (
-            <Box paddingX={1} flexShrink={0}>
-              {online.bridgeConnection === "connected" ? (
-                <Text color={BORDER_COLOR}>{bridgeLine}</Text>
-              ) : (
-                <Text color={BORDER_COLOR}>
-                  bridge: <Text color={SPINNER_COLOR}>{spinnerGlyph}</Text> connecting
-                </Text>
-              )}
-            </Box>
-          ) : null}
         </Box>
         <Box flexGrow={1} />
         <Box flexDirection="column" alignItems="center">
@@ -350,8 +407,8 @@ export const GameScreen = ({
             width={panelWidth - 4}
             onDialogChange={handleDialogChange}
             commands={mockSnapshot.commands}
-            onMove={chessBoard.handleUserInput}
-            onCommand={chessBoard.executeCommand}
+            onMove={isBridgeWaitingForGame ? undefined : chessBoard.handleUserInput}
+            onCommand={isBridgeWaitingForGame ? undefined : chessBoard.executeCommand}
           />
         </Box>
       </Box>
@@ -364,6 +421,17 @@ export const GameScreen = ({
         height={rows}
         flexDirection="column"
       >
+        {mode === "chesscom" ? (
+          <Box paddingX={1} flexShrink={0}>
+            {online.bridgeConnection === "connected" ? (
+              <Text color={BORDER_COLOR}>{bridgeLine}</Text>
+            ) : (
+              <Text color={BORDER_COLOR}>
+                <Text color={SPINNER_COLOR}>{spinnerGlyph}</Text> connecting
+              </Text>
+            )}
+          </Box>
+        ) : null}
         {/* content area */}
         <Box flexGrow={1} justifyContent="center" alignItems="center">
           {detached ? (
@@ -386,9 +454,7 @@ export const GameScreen = ({
         </Box>
         {/* footer hint */}
         <Box paddingX={1}>
-          <Text color={BORDER_COLOR}>
-            {detached ? `${mod("d")}: restore board` : `${mod("d")}: detach board`}
-          </Text>
+          <Text color={exitConfirmArmed ? "#f5f682" : BORDER_COLOR}>{footerTip}</Text>
         </Box>
       </Box>
     </Box>

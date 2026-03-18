@@ -1,6 +1,32 @@
 import React from "react";
 import { Box, Text } from "ink";
 
+const CAPTURED_SORT_ORDER: Record<string, number> = {
+  "♙": 0,
+  "♟": 0,
+  "♘": 1,
+  "♞": 1,
+  "♗": 2,
+  "♝": 2,
+  "♖": 3,
+  "♜": 3,
+  "♕": 4,
+  "♛": 4,
+  "♔": 5,
+  "♚": 5,
+};
+
+function sortCapturedByPiecePower(captured: string): string {
+  const symbols = Array.from(captured).filter((ch) => CAPTURED_SORT_ORDER[ch] !== undefined);
+  const unknown = Array.from(captured).filter((ch) => CAPTURED_SORT_ORDER[ch] === undefined);
+
+  symbols.sort((a, b) => {
+    return CAPTURED_SORT_ORDER[a]! - CAPTURED_SORT_ORDER[b]!;
+  });
+
+  return [...symbols, ...unknown].join("");
+}
+
 export type PlayerInfoProps = {
   name: string;
   elo: number | null;
@@ -23,6 +49,7 @@ export const PlayerInfo = ({
   const clockBadge = ` ◴ ${clock} `;
   const nameLabel = `${name} (${elo ?? "-"})`;
   const leftWidth = Math.max(0, width - clockBadge.length);
+  const sortedCaptured = sortCapturedByPiecePower(captured);
 
   const clampedName = nameLabel.length > leftWidth
     ? `${nameLabel.slice(0, Math.max(0, leftWidth - 1))}…`
@@ -30,7 +57,7 @@ export const PlayerInfo = ({
 
   const firstLine = `${clampedName}${" ".repeat(Math.max(0, leftWidth - clampedName.length))}${clockBadge}`;
 
-  const capturedLabel = `${captured}${advantage ? ` ${advantage}` : ""}`;
+  const capturedLabel = `${sortedCaptured}${advantage ? ` ${advantage}` : ""}`;
   const secondLine = capturedLabel.length > width
     ? `${capturedLabel.slice(0, Math.max(0, width - 1))}…`
     : capturedLabel;

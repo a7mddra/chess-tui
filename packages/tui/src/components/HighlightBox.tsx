@@ -68,8 +68,12 @@ export const HighlightBox = ({
 }: HighlightBoxProps): React.JSX.Element => {
   const rawLines = Array.isArray(label) ? label : [label];
 
-  // Left-align uses 1 char padding, so effective wrap width is narrower
-  const contentWidth = align === "left" ? width - 1 : width;
+  // Reserve one trailing cell so wrapped text never touches the right edge.
+  // For left align we also keep the existing one-cell left padding,
+  // so effective text width is width-2.
+  const contentWidth = align === "left"
+    ? Math.max(0, width - 2)
+    : Math.max(0, width - 1);
   const lines = wrapLines(rawLines, contentWidth);
 
   // Always start from the top (row 0)
