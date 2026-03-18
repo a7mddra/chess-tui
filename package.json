@@ -7,12 +7,13 @@
     "packages/*"
   ],
   "scripts": {
+    "build:tui": "npm run build --workspace chess-tui",
     "build:ext": "npm run build --workspace @chess-tui/ext",
     "dev:ext": "npm run dev --workspace @chess-tui/ext",
-    "dev:tui": "npm run dev --workspace @chess-tui/tui",
-    "start:tui": "npm run start --workspace @chess-tui/tui",
+    "dev:tui": "npm run dev --workspace chess-tui",
+    "start:tui": "npm run start --workspace chess-tui",
     "tsc:ext": "npm run typecheck --workspace @chess-tui/ext",
-    "tsc:tui": "npm run typecheck --workspace @chess-tui/tui",
+    "tsc:tui": "npm run typecheck --workspace chess-tui",
     "sanitize:fixture": "scripts/sanitize-fixture.sh",
     "test:move-bridge": "tsx tests/terminal-move-bridge.test.ts",
     "test:live-telemetry": "tsx tests/live-telemetry.test.ts",

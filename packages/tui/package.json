@@ -1,10 +1,27 @@
 {
-  "name": "@chess-tui/tui",
-  "private": true,
+  "name": "chess-tui",
   "version": "0.1.0",
   "type": "module",
-  "description": "A terminal user interface for chess games.",
+  "description": "Play chess.com from your terminal. Real account, real Elo, no ads.",
+  "keywords": ["chess", "tui", "terminal", "chess.com", "ink", "cli"],
+  "author": "a7mddra",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/a7mddra/chess-tui.git",
+    "directory": "packages/tui"
+  },
+  "bin": {
+    "chess-tui": "bin/chess-tui.mjs",
+    "chess": "bin/chess-tui.mjs"
+  },
+  "files": [
+    "bin/",
+    "dist/"
+  ],
   "scripts": {
+    "build": "node scripts/build.mjs",
+    "prepublishOnly": "npm run build",
     "dev": "tsx src/main.tsx",
     "start": "tsx src/main.tsx",
     "typecheck": "tsc --project ./tsconfig.json --noEmit"

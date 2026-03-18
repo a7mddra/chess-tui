@@ -1,6 +1,11 @@
-# chess-tui
+<h1 align="center">chess-tui</h1>
 
-Play chess.com from your terminal. Your real account, your real Elo, no ads.
+<p align="center">Play chess.com from your terminal. Your real account, your real Elo, no ads.</p>
+
+<p align="center">
+  <a href="https://www.npmjs.com/package/chess-tui"><img alt="npm" src="https://img.shields.io/npm/v/chess-tui?style=flat-square" /></a>
+  <a href="https://github.com/a7mddra/chess-tui/actions/workflows/release-ext.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/a7mddra/chess-tui/release-ext.yml?style=flat-square" /></a>
+</p>
 
 ## What is this?
 
@@ -24,18 +29,32 @@ Chess.com exposes `board.move()` in the page's JavaScript scope. Our extension u
 
 ## Quick Start
 
+**Prerequisite:** Ensure you have [Node.js and npm](https://nodejs.org/) installed on your machine.
+
+### 1. Install the CLI
+Install the package globally:
 ```bash
-# Install
 npm install -g chess-tui
-
-# Install the Chrome extension
-# (load packages/ext/ as unpacked extension in chrome://extensions)
-
-# Open chess.com in Chrome and start or resume a game
-
-# Run
-chess-tui
 ```
+
+### 2. Install the Bridge Extension
+To connect to your real chess.com games, you need the companion Chrome extension:
+1. Download `chess-tui-extension.zip` from **GitHub Releases**.
+2. Extract the zip file.
+3. Open `chrome://extensions` in your browser.
+4. Enable **"Developer mode"** (toggle in the top right).
+5. Click **"Load unpacked"** and select the extracted folder.
+*(Note: If Chrome shows any warnings or errors on the extension card, you can safely ignore them—they are harmless).*
+
+### 3. Play!
+1. Open [chess.com](https://chess.com) in Chrome and start or resume a game.
+2. Open your terminal **anywhere** and run:
+```bash
+chess-tui
+# or simply:
+chess
+```
+Enjoy playing ad-free right from your terminal!
 
 ## Game Modes
 
