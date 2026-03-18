@@ -17,6 +17,8 @@ type UseInputHandlerOptions = {
   onUndoRequest?: () => void;
   onHistoryUp?: () => boolean;
   onHistoryDown?: () => boolean;
+  onEdit?: () => void;
+  isNavigatingHistory?: boolean;
   onAnyAction?: () => void;
 };
 
@@ -36,6 +38,8 @@ export const useInputHandler = ({
   onUndoRequest,
   onHistoryUp,
   onHistoryDown,
+  onEdit,
+  isNavigatingHistory,
   onAnyAction,
 }: UseInputHandlerOptions): void => {
   useInput((_input, key) => {
@@ -81,13 +85,13 @@ export const useInputHandler = ({
     } else if ((key.ctrl || key.meta) && (_input ?? "").toLowerCase() === "z") {
       onUndoRequest?.();
     } else if (key.upArrow) {
-      if (isCommandMode && filteredCommands.length > 0) {
+      if (isCommandMode && filteredCommands.length > 0 && !isNavigatingHistory) {
         setSelectedIndex((i) => (i - 1 + filteredCommands.length) % filteredCommands.length);
       } else {
         onHistoryUp?.();
       }
     } else if (key.downArrow) {
-      if (isCommandMode && filteredCommands.length > 0) {
+      if (isCommandMode && filteredCommands.length > 0 && !isNavigatingHistory) {
         setSelectedIndex((i) => (i + 1) % filteredCommands.length);
       } else {
         onHistoryDown?.();
@@ -97,11 +101,13 @@ export const useInputHandler = ({
         setValue((v) => v.slice(0, cursor - 1) + v.slice(cursor));
         setCursor((c) => Math.max(0, c - 1));
         setSelectedIndex(0);
+        onEdit?.();
       }
     } else if (key.backspace) {
       if (cursor < value.length) {
         setValue((v) => v.slice(0, cursor) + v.slice(cursor + 1));
         setSelectedIndex(0);
+        onEdit?.();
       }
     } else if (_input && !key.ctrl && !key.meta) {
       if (_input === "?" && value === "") {
@@ -111,6 +117,7 @@ export const useInputHandler = ({
       setValue((v) => v.slice(0, cursor) + _input + v.slice(cursor));
       setCursor((c) => c + _input.length);
       setSelectedIndex(0);
+      onEdit?.();
     }
   });
 };

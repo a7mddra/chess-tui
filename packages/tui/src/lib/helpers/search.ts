@@ -109,10 +109,13 @@ export const searchCommands = (
   const scored: { command: Command; score: number }[] = [];
 
   for (const command of commands) {
+    const labelLower = command.label.toLowerCase();
+    const idLower = command.id.toLowerCase();
+
     // Build the full searchable text from id + label + keywords
     const words = [
-      command.id,
-      ...command.label.toLowerCase().split(/\s+/),
+      idLower,
+      ...labelLower.split(/\s+/),
       ...(command.keywords ?? []).map((k) => k.toLowerCase()),
     ];
     const full = words.join(" ");
@@ -120,17 +123,42 @@ export const searchCommands = (
     let totalScore = 0;
     let matchedTokens = 0;
 
+    // Full query bonuses for google-level priority
+    if (labelLower === raw) {
+      totalScore += 100;
+    } else if (labelLower.startsWith(raw)) {
+      totalScore += 50;
+    } else if (idLower === raw) {
+      totalScore += 40;
+    } else if (idLower.startsWith(raw)) {
+      totalScore += 20;
+    } else if (labelLower.includes(raw) || full.includes(raw)) {
+      totalScore += 10;
+    }
+
     for (const token of tokens) {
       let best = 0;
 
       // Check each word for the best match type
-      for (const word of words) {
+      for (let i = 0; i < words.length; i++) {
+        const word = words[i];
+        if (!word) continue;
+
+        let wordScore = 0;
         if (word === token) {
-          best = Math.max(best, SCORE_EXACT);
+          wordScore = SCORE_EXACT;
         } else if (word.startsWith(token)) {
-          best = Math.max(best, SCORE_PREFIX);
+          wordScore = SCORE_PREFIX;
         } else {
-          best = Math.max(best, getFuzzyScore(token, word));
+          wordScore = getFuzzyScore(token, word);
+        }
+
+        if (wordScore > 0) {
+          // Positional bonus: earlier words get higher score tiebreakers
+          // index 0 is ID, index 1 is first word of label
+          const posBonus = Math.max(0, 20 - i) / 10;
+          wordScore += posBonus;
+          best = Math.max(best, wordScore);
         }
       }
 

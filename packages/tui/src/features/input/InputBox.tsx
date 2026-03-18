@@ -43,12 +43,14 @@ export const InputBox = ({
   const [history, setHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [historyDraft, setHistoryDraft] = useState("");
+  const [isNavigatingHistory, setIsNavigatingHistory] = useState(false);
   const lastDialogRef = useRef("");
 
   const isCommandMode = value.startsWith("/");
   const filteredCommands = isCommandMode ? searchCommands(value, commands) : [];
   const allowUndoShortcut = commands.some((c) => c.id === "undo");
   const defaultLines = defaultDialogLines ?? DIALOG_HOWTO.lines;
+  const showCommandsDropdown = isCommandMode && !isNavigatingHistory;
   const dirtyHowtoLines = defaultLines.filter(
     (line) => !line.includes(SHORTCUT_TIP_MARKER),
   );
@@ -69,7 +71,7 @@ export const InputBox = ({
     if (value === "") {
       if (showingShortcuts) return;
       emitDialogChange(defaultLines);
-    } else if (isCommandMode) {
+    } else if (showCommandsDropdown) {
       if (filteredCommands.length === 0) {
         emitDialogChange(["No matching command"]);
       } else {
@@ -104,6 +106,7 @@ export const InputBox = ({
     defaultLines,
     errorTimer,
     showingShortcuts,
+    showCommandsDropdown,
     emitDialogChange,
   ]);
 
@@ -119,22 +122,31 @@ export const InputBox = ({
       if (errorTimer || submittedValue === "") return;
 
       const normalized = submittedValue.trim();
+
+      if (isCommandMode) {
+        const chosen = filteredCommands[selectedIndex];
+        if (chosen) {
+          setHistory((prev) => [...prev, `/${chosen.label}`]);
+          if (onCommand) {
+            onCommand(chosen.id);
+          }
+        } else {
+          setHistory((prev) => [...prev, normalized]);
+        }
+        setHistoryIndex(-1);
+        setHistoryDraft("");
+        setValue("");
+        setCursor(0);
+        setSelectedIndex(0);
+        setIsNavigatingHistory(false);
+        return;
+      }
+
       if (normalized !== "") {
         setHistory((prev) => [...prev, normalized]);
       }
       setHistoryIndex(-1);
       setHistoryDraft("");
-
-      if (isCommandMode) {
-        const chosen = filteredCommands[selectedIndex];
-        if (chosen && onCommand) {
-          onCommand(chosen.id);
-        }
-        setValue("");
-        setCursor(0);
-        setSelectedIndex(0);
-        return;
-      }
 
       if (isValidAlgebraic(submittedValue)) {
         if (onMove) {
@@ -142,6 +154,7 @@ export const InputBox = ({
         }
         setValue("");
         setCursor(0);
+        setIsNavigatingHistory(false);
         return;
       }
 
@@ -151,6 +164,7 @@ export const InputBox = ({
         setValue("");
         setCursor(0);
         setSelectedIndex(0);
+        setIsNavigatingHistory(false);
       }, 2000);
       setErrorTimer(t);
     },
@@ -160,6 +174,8 @@ export const InputBox = ({
       filteredCommands,
       selectedIndex,
       emitDialogChange,
+      onCommand,
+      onMove,
     ],
   );
 
@@ -179,6 +195,7 @@ export const InputBox = ({
     setValue(nextValue);
     setCursor(nextValue.length);
     setSelectedIndex(0);
+    setIsNavigatingHistory(true);
     return true;
   }, [history, historyIndex, value]);
 
@@ -192,6 +209,7 @@ export const InputBox = ({
       setValue(historyDraft);
       setCursor(historyDraft.length);
       setSelectedIndex(0);
+      setIsNavigatingHistory(false);
       return true;
     }
 
@@ -201,6 +219,7 @@ export const InputBox = ({
     setValue(nextValue);
     setCursor(nextValue.length);
     setSelectedIndex(0);
+    setIsNavigatingHistory(true);
     return true;
   }, [history, historyIndex, historyDraft]);
 
@@ -241,6 +260,8 @@ export const InputBox = ({
     onUndoRequest: handleUndoRequest,
     onHistoryUp: handleHistoryUp,
     onHistoryDown: handleHistoryDown,
+    onEdit: () => setIsNavigatingHistory(false),
+    isNavigatingHistory,
     onAnyAction: handleAnyAction,
   });
 
