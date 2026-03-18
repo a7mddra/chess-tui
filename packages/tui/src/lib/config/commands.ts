@@ -21,9 +21,9 @@ export const COMMANDS: Command[] = [
   { id: "flip", label: "Flip board", mode: "offline" },
   { id: "undo", label: "Undo last move", mode: "offline" },
   {
-    id: "difficulty",
-    label: "Set difficulty",
-    keywords: ["level"],
+    id: "diff",
+    label: "Set engine elo",
+    keywords: ["difficulty", "level"],
     mode: "offline",
   },
   { id: "theme", label: "Change Theme", keywords: ["board", "palette", "skin"], mode: "all" },

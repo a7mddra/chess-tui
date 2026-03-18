@@ -78,7 +78,7 @@ export const DIALOG_DRAW_REPETITION = d("draw_repetition", [
 ]);
 
 export const DIALOG_DRAW_INSUFFICIENT = d("draw_insufficient", [
-  "Draw — insufficient material.",
+  "Draw by insufficient material.",
 ]);
 
 export const DIALOG_ABANDONED = d("abandoned", ["Game over — abandoned."]);
@@ -99,16 +99,27 @@ export const DIALOG_INVALID_INPUT = d("invalid_input", [
   "Type e2e4 or / for commands.",
 ]);
 
+export const DIALOG_INVALID_ELO_INPUT = d("invalid_elo_input", [
+  "Invalid engine level.",
+  "Enter a value from 100 to 3000.",
+]);
+
+export const DIALOG_ELO_PROMPT = d("elo_prompt", [
+  "Set engine Elo [100-3000]",
+  "Esc cancels this prompt.",
+]);
+
 // -- Browser / external game -----------------------------------------------
 
 export const DIALOG_BROWSER_START = d("browser_start", [
-  "open your browser and start a game, or reload a previously opened tab.",
+  "Open your browser and start a game, or reload a previously opened tab.",
 ]);
 
 // -- Stockfish / AI --------------------------------------------------------
 
 export const DIALOG_STOCKFISH = d("stockfish", [
-  "Playing vs Stockfish 18.",
-  "/difficulty to adjust,",
-  "/flip to play as black.",
+  "Playing vs the engine.",
+  "",
+  "/diff to adjust Elo,",
+  "/flip to play as Black.",
 ]);

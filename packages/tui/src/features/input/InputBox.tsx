@@ -21,6 +21,7 @@ type InputBoxProps = {
   onDialogChange: (lines: string[]) => void;
   commands: Command[];
   onMove?: (uci: string) => void;
+  onTextSubmit?: (value: string) => boolean;
   onCommand?: (id: string) => void;
   disabled?: boolean;
   defaultDialogLines?: string[];
@@ -31,6 +32,7 @@ export const InputBox = ({
   onDialogChange,
   commands,
   onMove,
+  onTextSubmit,
   onCommand,
   disabled = false,
   defaultDialogLines,
@@ -148,6 +150,13 @@ export const InputBox = ({
       setHistoryIndex(-1);
       setHistoryDraft("");
 
+      if (onTextSubmit?.(normalized)) {
+        setValue("");
+        setCursor(0);
+        setIsNavigatingHistory(false);
+        return;
+      }
+
       if (isValidAlgebraic(submittedValue)) {
         if (onMove) {
           onMove(submittedValue);
@@ -175,6 +184,7 @@ export const InputBox = ({
       selectedIndex,
       emitDialogChange,
       onCommand,
+      onTextSubmit,
       onMove,
     ],
   );

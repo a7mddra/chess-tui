@@ -6,6 +6,7 @@ import {
 import type { PlayerInfoProps } from "../../features/players/PlayerInfo";
 import { PIECES_BY_CODE } from "../../features/board/piece";
 export * from "./chesscom/core";
+export * from "./stockfish/index";
 
 export type ApiPlayer = PlayerInfoProps;
 
