@@ -5,7 +5,7 @@ import {
 } from "../config/commands";
 import type { PlayerInfoProps } from "../../features/players/PlayerInfo";
 import { PIECES_BY_CODE } from "../../features/board/piece";
-export * from "./chesscom-online";
+export * from "./chesscom/core";
 
 export type ApiPlayer = PlayerInfoProps;
 

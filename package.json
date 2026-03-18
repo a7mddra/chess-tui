@@ -3,7 +3,6 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Monorepo for chess-tui CLI and Chrome extension bridge.",
   "workspaces": [
     "packages/*"
   ],

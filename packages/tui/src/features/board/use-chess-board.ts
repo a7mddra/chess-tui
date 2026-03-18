@@ -9,6 +9,7 @@ import {
 } from './types';
 import { parseCoordinate, tryMove, tryMoveSwapped } from './move-utils';
 export type { BoardCell, ChessBoardState } from './types';
+export { useBoardIpcServer, useBoardIpcClient} from "./board-ipc";
 
 // ---------------------------------------------------------------------------
 // Hook

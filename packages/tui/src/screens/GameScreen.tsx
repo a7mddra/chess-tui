@@ -4,17 +4,16 @@ import type { ChildProcess } from "node:child_process";
 import process from "node:process";
 import { useRouter, type GameMode } from "@/router/AppRouter";
 import { Board, InputBox, PlayerInfo } from "@/features";
-import { useChessBoard } from "@/features/board/use-chess-board";
+import { useBoardIpcServer, useChessBoard } from "@/features/board/Board";
 import { DvdBounce, HighlightBox, SpinnerText } from "@/components";
 import {
   BOARD_THEME_OPTIONS,
   DEFAULT_BOARD_THEME_ID,
   spawnBoardWindow,
-  useBoardIpcServer,
   DIALOG_HOWTO,
   DIALOG_BROWSER_START,
   getMockGameSnapshot,
-  useChesscomOnlineGame,
+  useOnlineGame,
   saveUserPreferences,
   loadUserPreferences,
   type BoardThemeId,
@@ -94,7 +93,7 @@ export const GameScreen = ({ mode }: GameScreenProps): React.JSX.Element => {
     [],
   );
   const mockSnapshot = getMockGameSnapshot(mode);
-  const online = useChesscomOnlineGame(mode === "chesscom");
+  const online = useOnlineGame(mode === "chesscom");
 
   const currentFen =
     mode === "chesscom" ? (online.fen ?? CHESS_START_FEN) : mockSnapshot.fen;

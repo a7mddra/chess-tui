@@ -9,6 +9,7 @@ import {
 } from "@/lib";
 import type { BoardCell } from "./types";
 import { getPieceGlyph, isPieceKind } from "./piece";
+export { useBoardIpcServer, useBoardIpcClient, useChessBoard } from "./use-chess-board";
 
 const FILES = "abcdefgh";
 

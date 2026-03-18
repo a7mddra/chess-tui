@@ -5,7 +5,7 @@ import { Board } from "@/features";
 import { useChessBoard } from "@/features/board/use-chess-board";
 
 // ---------------------------------------------------------------------------
-// Standalone board window — fills the terminal with just the board
+// Standalone board window
 // ---------------------------------------------------------------------------
 
 const BoardWindow = (): React.JSX.Element => {

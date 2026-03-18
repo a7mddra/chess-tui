@@ -1,11 +1,10 @@
 import { render, Box, Text, useApp, useInput, useStdout } from "ink";
 import React, { useState } from "react";
 import { AppRouter } from "@/router/AppRouter";
-import { Board } from "@/features";
-import { useBoardIpcClient } from "@/lib";
+import { Board, useBoardIpcClient } from "@/features";
 
 // ---------------------------------------------------------------------------
-// Standalone board window — fills the terminal with just the board
+// Standalone board window
 // ---------------------------------------------------------------------------
 
 const BoardScreen = ({ sessionId }: { sessionId: string }): React.JSX.Element => {
