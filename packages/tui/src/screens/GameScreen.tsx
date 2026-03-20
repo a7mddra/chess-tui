@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { Box, Text, useInput, useStdout } from "ink";
-import type { ChildProcess } from "node:child_process";
+import { exec, type ChildProcess } from "node:child_process";
+import { Chess } from "chess.js";
 import process from "node:process";
 import { useRouter, type GameMode } from "@/router/AppRouter";
 import { Board, InputBox, PlayerInfo } from "@/features";
@@ -12,9 +13,12 @@ import {
   spawnBoardWindow,
   DIALOG_HOWTO,
   DIALOG_BROWSER_START,
+  DIALOG_DRAW_OFFERED,
   DIALOG_STOCKFISH,
   DIALOG_INVALID_ELO_INPUT,
   DIALOG_ELO_PROMPT,
+  DIALOG_PROMOTION_PROMPT,
+  DIALOG_INVALID_INPUT,
   DIALOG_BLACK_WON_RESIGNATION,
   DIALOG_WHITE_WON_RESIGNATION,
   getMockGameSnapshot,
@@ -46,14 +50,14 @@ const STOCKFISH_READY_LABEL = "Stockfish v17.1.0";
 
 const CHESSCOM_TEMP_PLAYERS = {
   top: {
-    name: "Player 1",
+    name: "Opponent",
     elo: null,
     clock: "00:00",
     captured: "",
     advantage: "",
   },
   bottom: {
-    name: "Player 2",
+    name: "You",
     elo: null,
     clock: "00:00",
     captured: "",
@@ -81,6 +85,7 @@ export const GameScreen = ({ mode }: GameScreenProps): React.JSX.Element => {
   const playerInfoWidth = Math.max(18, panelWidth - 4);
 
   const [detached, setDetached] = useState(false);
+  const [pendingPromotionMove, setPendingPromotionMove] = useState<string | null>(null);
   const [dialogLines, setDialogLines] = useState<string[]>(() =>
     mode === "stockfish" ? DIALOG_STOCKFISH.lines : DIALOG_HOWTO.lines,
   );
@@ -162,6 +167,23 @@ export const GameScreen = ({ mode }: GameScreenProps): React.JSX.Element => {
       chessBoard.loadFen(online.fen);
     }
   }, [mode, online.fen, chessBoard]);
+
+  useEffect(() => {
+    if (mode === "chesscom" && online.lastGameOver) {
+      const cleaned = online.lastGameOver.replace(/^Game Over\s*/i, "");
+      const parenIdx = cleaned.indexOf("(");
+      const lines = parenIdx > 0
+        ? ["Game Over", cleaned.slice(0, parenIdx).trim(), cleaned.slice(parenIdx).trim()]
+        : ["Game Over", cleaned];
+      setDialogLines(lines.filter(Boolean));
+    }
+  }, [mode, online.lastGameOver]);
+
+  useEffect(() => {
+    if (mode === "chesscom" && online.lastDrawOfferedAt) {
+      setDialogLines(DIALOG_DRAW_OFFERED.lines);
+    }
+  }, [mode, online.lastDrawOfferedAt]);
 
   useEffect(() => {
     if (mode !== "stockfish") {
@@ -248,12 +270,18 @@ export const GameScreen = ({ mode }: GameScreenProps): React.JSX.Element => {
     stockfish.connection === "ready"
       ? STOCKFISH_READY_LABEL
       : STOCKFISH_LOADING_LABEL;
-  const defaultDialogLines = isBridgeWaitingForGame
-    ? DIALOG_BROWSER_START.lines
-    : mode === "stockfish"
-      ? (stockfishIntroOpen ? DIALOG_STOCKFISH.lines : DIALOG_HOWTO.lines)
-      : DIALOG_HOWTO.lines;
-  const lockDialog = themePickerOpen || (mode === "stockfish" && stockfish.gameOver);
+  const defaultDialogLines = pendingPromotionMove
+    ? DIALOG_PROMOTION_PROMPT.lines
+    : isBridgeWaitingForGame
+      ? DIALOG_BROWSER_START.lines
+      : mode === "stockfish"
+        ? (stockfish.gameOver
+          ? (stockfish.winner === "w"
+              ? DIALOG_WHITE_WON_RESIGNATION.lines
+              : DIALOG_BLACK_WON_RESIGNATION.lines)
+          : stockfishIntroOpen ? DIALOG_STOCKFISH.lines : DIALOG_HOWTO.lines)
+        : DIALOG_HOWTO.lines;
+  const lockDialog = themePickerOpen || pendingPromotionMove !== null;
   const activeThemeId = themePickerOpen
     ? (BOARD_THEME_OPTIONS[themePickerIndex]?.id ?? boardThemeId)
     : boardThemeId;
@@ -294,8 +322,30 @@ export const GameScreen = ({ mode }: GameScreenProps): React.JSX.Element => {
     [lockDialog, mode, eloPromptOpen],
   );
 
-  const handleStockfishEloInput = useCallback(
+  const handleTextSubmit = useCallback(
     (value: string): boolean => {
+      if (pendingPromotionMove) {
+        if (eloInvalidTimerRef.current) {
+          clearTimeout(eloInvalidTimerRef.current);
+          eloInvalidTimerRef.current = null;
+        }
+
+        const char = value.trim().toLowerCase();
+        if (["q", "r", "b", "n"].includes(char)) {
+          const fullMove = pendingPromotionMove + char;
+          setPendingPromotionMove(null);
+          chessBoard.handleUserInput(fullMove);
+          return true;
+        }
+
+        setDialogLines(DIALOG_INVALID_INPUT.lines);
+        eloInvalidTimerRef.current = setTimeout(() => {
+          setDialogLines(DIALOG_PROMOTION_PROMPT.lines);
+          eloInvalidTimerRef.current = null;
+        }, ELO_INVALID_TIMEOUT_MS);
+        return true;
+      }
+
       if (mode !== "stockfish" || !eloPromptOpen) {
         return false;
       }
@@ -333,8 +383,52 @@ export const GameScreen = ({ mode }: GameScreenProps): React.JSX.Element => {
       ]);
       return true;
     },
-    [mode, eloPromptOpen, stockfish],
+    [mode, eloPromptOpen, stockfish, pendingPromotionMove, chessBoard],
   );
+
+  const handleMoveSubmit = useCallback((input: string) => {
+    const normalized = input.trim().toLowerCase();
+    const isCoordLike = /^([a-h][1-8]-?[a-h][1-8]-?[qrbn]?|[a-h][1-8]-?[qrbn]?)$/.test(normalized);
+    const passToBoard = isCoordLike ? normalized.replace(/-/g, '') : normalized;
+
+    let checkPromotionMove = passToBoard;
+
+    if (chessBoard.selectedSquare && /^[a-h][1-8][qrbn]?$/.test(passToBoard)) {
+      checkPromotionMove = chessBoard.selectedSquare + passToBoard;
+    }
+
+    if (/^[a-h][1-8][a-h][1-8]$/.test(checkPromotionMove)) {
+      const from = checkPromotionMove.substring(0, 2);
+      const to = checkPromotionMove.substring(2, 4);
+      try {
+        const testChess = new Chess(chessBoard.fen);
+        const moveWithQ = testChess.move({ from, to, promotion: 'q' });
+        if (moveWithQ) {
+          const testChess2 = new Chess(chessBoard.fen);
+          let normalValid = false;
+          try {
+            if (testChess2.move({ from, to })) {
+               normalValid = true;
+            }
+          } catch {
+             normalValid = false;
+          }
+          if (!normalValid) {
+            if (checkPromotionMove.length === 4) {
+              setPendingPromotionMove(checkPromotionMove);
+              setDialogLines(DIALOG_PROMOTION_PROMPT.lines);
+              chessBoard.clearSelection();
+              return;
+            }
+          }
+        }
+      } catch {
+        // ignore and let chessBoard.handleUserInput throw its own error if any
+      }
+    }
+
+    chessBoard.handleUserInput(passToBoard);
+  }, [chessBoard]);
 
   useBoardIpcServer(sessionId, {
     board: chessBoard.board,
@@ -385,6 +479,45 @@ export const GameScreen = ({ mode }: GameScreenProps): React.JSX.Element => {
         return;
       }
 
+      if (mode === "chesscom") {
+        if (["new", "resign", "draw", "accept", "decline"].includes(commandId)) {
+          if (commandId === "new") {
+            chessBoard.clearPremoves();
+            chessBoard.clearSelection();
+            chessBoard.loadFen(CHESS_START_FEN);
+            setDialogLines(DIALOG_BROWSER_START.lines);
+          } else if (commandId === "resign") {
+            setDialogLines(["Game Over", "You resigned."]);
+          } else if (commandId === "draw") {
+            setDialogLines(["Draw offered..."]);
+          }
+          void online.sendInteraction(commandId as any);
+          return;
+        }
+
+        if (commandId === "analyze") {
+          if (online.gameUrl) {
+            const match = online.gameUrl.match(/\/game\/live\/([^/?#]+)/);
+            if (match && match[1]) {
+              const url = `https://www.chess.com/game/live/${match[1]}/review`;
+              if (process.platform === "darwin") {
+                 exec(`open "${url}"`);
+              } else if (process.platform === "win32") {
+                 exec(`start "" "${url}"`);
+              } else {
+                 exec(`xdg-open "${url}"`);
+              }
+              setDialogLines(["Opening game review in browser..."]);
+            } else {
+              setDialogLines(["Error: Could not extract game ID from URL."]);
+            }
+          } else {
+            setDialogLines(["Error: Game URL not available yet."]);
+          }
+          return;
+        }
+      }
+
       if (mode === "stockfish") {
         if (commandId === "new") {
           if (eloInvalidTimerRef.current) {
@@ -395,6 +528,7 @@ export const GameScreen = ({ mode }: GameScreenProps): React.JSX.Element => {
           lastEngineRequestFenRef.current = null;
           setStockfishIntroOpen(true);
           setEloPromptOpen(false);
+          setPendingPromotionMove(null);
           chessBoard.loadFen(fen);
           chessBoard.clearPremoves();
           chessBoard.clearSelection();
@@ -444,9 +578,13 @@ export const GameScreen = ({ mode }: GameScreenProps): React.JSX.Element => {
         }
       }
 
+      if (commandId === "exit") {
+        process.exit(0);
+      }
+
       chessBoard.executeCommand(commandId);
     },
-    [boardThemeId, buildThemeDialogLines, chessBoard, mode, stockfish],
+    [boardThemeId, buildThemeDialogLines, chessBoard, mode, stockfish, online],
   );
 
   useEffect(() => {
@@ -652,9 +790,9 @@ export const GameScreen = ({ mode }: GameScreenProps): React.JSX.Element => {
             onDialogChange={handleDialogChange}
             commands={mockSnapshot.commands}
             disabled={themePickerOpen}
-            onTextSubmit={handleStockfishEloInput}
+            onTextSubmit={handleTextSubmit}
             onMove={
-              isBridgeWaitingForGame ? undefined : chessBoard.handleUserInput
+              isBridgeWaitingForGame ? undefined : handleMoveSubmit
             }
             onCommand={handleCommand}
             defaultDialogLines={defaultDialogLines}

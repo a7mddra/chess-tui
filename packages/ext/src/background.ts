@@ -2,7 +2,9 @@ import {
   isContentToBackgroundMessage,
   parseWsInbound,
   type ApplyMoveCommand,
+  type ApplyInteractionCommand,
   type ApplyMoveResponse,
+  type ApplyInteractionResponse,
   type WsOutboundMessage
 } from "./protocol";
 
@@ -107,18 +109,36 @@ async function handleSocketPayload(payload: string): Promise<void> {
   }
 
   const requestId = message.requestId ?? crypto.randomUUID();
-  const result = await applyMoveToBestTab(message.uci, requestId);
+  let result: ApplyMoveResponse | ApplyInteractionResponse;
+
+  if (message.type === "move") {
+    result = await applyActionToBestTab({
+      type: "APPLY_MOVE",
+      uci: message.uci,
+      requestId
+    });
+  } else if (message.type === "interaction") {
+    result = await applyActionToBestTab({
+      type: "APPLY_INTERACTION",
+      command: message.command,
+      requestId
+    });
+  } else {
+    return;
+  }
 
   sendToSocket({
     type: "move-result",
     requestId,
     ok: result.ok,
-    fen: result.fen,
+    fen: (result as ApplyMoveResponse).fen,
     error: result.error
   });
 }
 
-async function applyMoveToBestTab(uci: string, requestId: string): Promise<ApplyMoveResponse> {
+async function applyActionToBestTab(
+  command: ApplyMoveCommand | ApplyInteractionCommand
+): Promise<ApplyMoveResponse | ApplyInteractionResponse> {
   const tabId = await resolveTargetTab();
   if (tabId === null) {
     return {
@@ -128,13 +148,7 @@ async function applyMoveToBestTab(uci: string, requestId: string): Promise<Apply
     };
   }
 
-  const command: ApplyMoveCommand = {
-    type: "APPLY_MOVE",
-    uci,
-    requestId
-  };
-
-  return sendMoveToTab(tabId, command);
+  return sendActionToTab(tabId, command);
 }
 
 async function resolveTargetTab(): Promise<number | null> {
@@ -187,9 +201,9 @@ function checkContentReceiver(tabId: number): Promise<boolean> {
   });
 }
 
-function sendMoveToTab(tabId: number, message: ApplyMoveCommand): Promise<ApplyMoveResponse> {
+function sendActionToTab(tabId: number, message: ApplyMoveCommand | ApplyInteractionCommand): Promise<ApplyMoveResponse | ApplyInteractionResponse> {
   return new Promise((resolve) => {
-    chrome.tabs.sendMessage(tabId, message, (response?: ApplyMoveResponse) => {
+    chrome.tabs.sendMessage(tabId, message, (response?: ApplyMoveResponse | ApplyInteractionResponse) => {
       const runtimeError = chrome.runtime.lastError;
       if (runtimeError) {
         readyTabIds.delete(tabId);
@@ -227,6 +241,11 @@ chrome.runtime.onMessage.addListener((message: unknown, sender) => {
       readyTabIds.add(tabId);
     }
 
+    sendToSocket({
+      type: "game-url",
+      url: message.href
+    });
+
     if (message.fen) {
       sendToSocket({
         type: "fen",
@@ -256,6 +275,22 @@ chrome.runtime.onMessage.addListener((message: unknown, sender) => {
         snapshot: message.snapshot
       });
     }
+    return;
+  }
+
+  if (message.type === "GAME_OVER") {
+    sendToSocket({
+      type: "game-over",
+      resultMessage: message.resultMessage
+    });
+    return;
+  }
+
+  if (message.type === "DRAW_OFFERED") {
+    sendToSocket({
+      type: "draw-offered"
+    });
+    return;
   }
 });
 

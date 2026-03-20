@@ -115,6 +115,14 @@ export const DIALOG_BROWSER_START = d("browser_start", [
   "Open your browser and start a game, or reload a previously opened tab.",
 ]);
 
+// -- Promotion -------------------------------------------------------------
+
+export const DIALOG_PROMOTION_PROMPT = d("promotion_prompt", [
+  "Promote to:",
+  `${PIECES_BY_CODE.Q.glyph} (q)ueen, ${PIECES_BY_CODE.R.glyph} (r)ook,`,
+  `${PIECES_BY_CODE.B.glyph} (b)ishop, ${PIECES_BY_CODE.N.glyph} (k)night`,
+]);
+
 // -- Stockfish / AI --------------------------------------------------------
 
 export const DIALOG_STOCKFISH = d("stockfish", [

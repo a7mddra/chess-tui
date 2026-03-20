@@ -1,6 +1,7 @@
 import {
   isGameClockSnapshot,
   isApplyMoveCommand,
+  isApplyInteractionCommand,
   type GameClockSnapshot,
   type ApplyMoveResponse
 } from "./protocol";
@@ -83,26 +84,37 @@ chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) =
     return;
   }
 
-  if (!isApplyMoveCommand(message)) {
-    return;
+  if (isApplyMoveCommand(message)) {
+    const timeoutId = window.setTimeout(() => {
+      handleMoveTimeout(message.requestId);
+    }, MOVE_TIMEOUT_MS);
+
+    pendingRequests.set(message.requestId, { sendResponse, timeoutId });
+
+    postToPage({
+      type: "APPLY_MOVE",
+      requestId: message.requestId,
+      uci: message.uci
+    });
+
+    return true;
   }
 
-  const timeoutId = window.setTimeout(() => {
-    handleMoveTimeout(message.requestId);
-  }, MOVE_TIMEOUT_MS);
+  if (isApplyInteractionCommand(message)) {
+    const timeoutId = window.setTimeout(() => {
+      handleMoveTimeout(message.requestId);
+    }, MOVE_TIMEOUT_MS);
 
-  pendingRequests.set(message.requestId, {
-    sendResponse,
-    timeoutId
-  });
+    pendingRequests.set(message.requestId, { sendResponse, timeoutId });
 
-  postToPage({
-    type: "APPLY_MOVE",
-    requestId: message.requestId,
-    uci: message.uci
-  });
+    postToPage({
+      type: "APPLY_INTERACTION",
+      requestId: message.requestId,
+      command: message.command
+    });
 
-  return true;
+    return true;
+  }
 });
 
 window.addEventListener("message", (event) => {
@@ -115,7 +127,7 @@ window.addEventListener("message", (event) => {
     return;
   }
 
-  if (data.type === "MOVE_RESULT" && typeof data.requestId === "string") {
+  if ((data.type === "MOVE_RESULT" || data.type === "INTERACTION_RESULT") && typeof data.requestId === "string") {
     const pending = pendingRequests.get(data.requestId);
     if (!pending) {
       return;
@@ -138,6 +150,21 @@ window.addEventListener("message", (event) => {
       type: "FEN_UPDATE",
       fen: data.fen,
       snapshot
+    });
+    return;
+  }
+
+  if (data.type === "GAME_OVER" && typeof data.resultMessage === "string") {
+    void chrome.runtime.sendMessage({
+      type: "GAME_OVER",
+      resultMessage: data.resultMessage
+    });
+    return;
+  }
+
+  if (data.type === "DRAW_OFFERED") {
+    void chrome.runtime.sendMessage({
+      type: "DRAW_OFFERED"
     });
     return;
   }

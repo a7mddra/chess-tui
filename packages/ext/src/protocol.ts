@@ -1,9 +1,16 @@
 export const UCI_MOVE_REGEX = /^[a-h][1-8][a-h][1-8][qrbn]?$/i;
 
+export type CommandInteraction = "new" | "resign" | "draw" | "accept" | "decline";
+
 export type WsInboundMessage =
   | {
       type: "move";
       uci: string;
+      requestId?: string;
+    }
+  | {
+      type: "interaction";
+      command: CommandInteraction;
       requestId?: string;
     }
   | {
@@ -38,6 +45,17 @@ export type WsOutboundMessage =
       ts: number;
     }
   | {
+      type: "game-over";
+      resultMessage: string;
+    }
+  | {
+      type: "draw-offered";
+    }
+  | {
+      type: "game-url";
+      url: string;
+    }
+  | {
       type: "error";
       error: string;
       requestId?: string;
@@ -49,9 +67,20 @@ export interface ApplyMoveCommand {
   requestId: string;
 }
 
+export interface ApplyInteractionCommand {
+  type: "APPLY_INTERACTION";
+  command: CommandInteraction;
+  requestId: string;
+}
+
 export interface ApplyMoveResponse {
   ok: boolean;
   fen?: string;
+  error?: string;
+}
+
+export interface ApplyInteractionResponse {
+  ok: boolean;
   error?: string;
 }
 
@@ -84,6 +113,13 @@ export type ContentToBackgroundMessage =
       type: "FEN_UPDATE";
       fen: string;
       snapshot?: GameClockSnapshot;
+    }
+  | {
+      type: "GAME_OVER";
+      resultMessage: string;
+    }
+  | {
+      type: "DRAW_OFFERED";
     };
 
 export type ContentHealthcheckMessage = {
@@ -126,6 +162,14 @@ export function parseWsInbound(value: unknown): WsInboundMessage | null {
     };
   }
 
+  if (data.type === "interaction") {
+    return {
+      type: "interaction",
+      command: data.command as CommandInteraction,
+      requestId: asOptionalString(data.requestId)
+    };
+  }
+
   if (data.type === "ping") {
     return {
       type: "ping",
@@ -146,6 +190,16 @@ export function isApplyMoveCommand(value: unknown): value is ApplyMoveCommand {
     data.type === "APPLY_MOVE" &&
     typeof data.uci === "string" &&
     UCI_MOVE_REGEX.test(data.uci) &&
+    typeof data.requestId === "string"
+  );
+}
+
+export function isApplyInteractionCommand(value: unknown): value is ApplyInteractionCommand {
+  const data = asRecord(value);
+  if (!data) return false;
+  return (
+    data.type === "APPLY_INTERACTION" &&
+    typeof data.command === "string" &&
     typeof data.requestId === "string"
   );
 }
@@ -175,6 +229,14 @@ export function isContentToBackgroundMessage(
     }
 
     return typeof data.snapshot === "undefined" || isGameClockSnapshot(data.snapshot);
+  }
+
+  if (data.type === "GAME_OVER" && typeof data.resultMessage === "string") {
+    return true;
+  }
+
+  if (data.type === "DRAW_OFFERED") {
+    return true;
   }
 
   return false;

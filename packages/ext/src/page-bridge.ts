@@ -512,6 +512,17 @@ function applyMove(uci: string): { ok: boolean; fen?: string; error?: string } {
 
   try {
     game.move(movePayload);
+
+    if (parsed.promotion) {
+      setTimeout(() => {
+        const pieceSelector = `.promotion-piece.w${parsed.promotion}, .promotion-piece.b${parsed.promotion}`;
+        const promotionElement = document.querySelector(pieceSelector) as HTMLElement;
+        if (promotionElement) {
+          promotionElement.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+          promotionElement.click();
+        }
+      }, 50);
+    }
   } catch (error) {
     return {
       ok: false,
@@ -525,8 +536,72 @@ function applyMove(uci: string): { ok: boolean; fen?: string; error?: string } {
   };
 }
 
+function applyInteraction(command: string): { ok: boolean; error?: string } {
+  let selector: string | null = null;
+  switch (command) {
+    case "new": {
+      const isRunning = !document.querySelector('.game-over-message-component');
+      if (isRunning) {
+        ignoreGameOverUntil = Date.now() + 1000;
+        const resignBtn = document.querySelector('[data-cy="resign-button"], .resign-button-component') as HTMLElement | null;
+        if (resignBtn) {
+          resignBtn.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+          resignBtn.click();
+          setTimeout(() => {
+            const confirmYes = resignBtn.querySelector('[data-cy="confirm-yes"]') as HTMLElement | null;
+            if (confirmYes) {
+              confirmYes.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+              confirmYes.click();
+            }
+            setTimeout(() => {
+              const newBtn = document.querySelector('[data-cy="game-over-modal-new-game-button"]') as HTMLElement | null;
+              if (newBtn) {
+                newBtn.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+                newBtn.click();
+              }
+            }, 600);
+          }, 50);
+          return { ok: true };
+        }
+      }
+      selector = '[data-cy="game-over-modal-new-game-button"]';
+      break;
+    }
+    case "resign": selector = '[data-cy="resign-button"], .resign-button-component'; break;
+    case "draw": selector = '[data-cy="draw-offer-button"], .draw-button-component'; break;
+    case "accept": selector = '[data-cy="draw-offer-accept"]'; break;
+    case "decline": selector = '[data-cy="draw-offer-decline"]'; break;
+    default: return { ok: false, error: `Unknown interaction: ${command}` };
+  }
+
+  const el = document.querySelector(selector) as HTMLElement | null;
+  if (!el || el.offsetParent === null) {
+    return { ok: false, error: `Element not found or not visible: ${command}` };
+  }
+
+  try {
+    el.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    el.click();
+
+    setTimeout(() => {
+      const confirmYes = el.querySelector('[data-cy="confirm-yes"]') as HTMLElement | null;
+      if (confirmYes) {
+        confirmYes.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+        confirmYes.click();
+      }
+    }, 50);
+
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Interaction error." };
+  }
+}
+
 let lastFen = "";
 let lastSnapshotSignal = "";
+let lastGameOverText: string | null = null;
+let lastDrawOffered = false;
+let ignoreGameOverUntil = 0;
 
 function buildSnapshotSignal(snapshot: GameClockSnapshot | null): string {
   if (!snapshot) {
@@ -569,40 +644,82 @@ function emitFenIfChanged(force = false): void {
   });
 }
 
+function checkGameEvents(): void {
+  if (Date.now() < ignoreGameOverUntil) {
+    return;
+  }
+
+  const gameOverEl = document.querySelector('.game-over-message-component');
+  if (gameOverEl && gameOverEl.textContent) {
+    const text = gameOverEl.textContent.replace(/\s+/g, ' ').trim();
+    if (text !== lastGameOverText) {
+      lastGameOverText = text;
+      postToContent({ type: "GAME_OVER", resultMessage: text });
+    }
+  } else {
+    if (lastGameOverText !== null) {
+      lastGameOverText = null;
+      postToContent({ type: "GAME_OVER", resultMessage: "" });
+    }
+  }
+
+  const drawOfferEl = document.querySelector('[data-cy="draw-offer-accept"]');
+  const isDrawOffered = !!(drawOfferEl && (drawOfferEl as HTMLElement).offsetParent !== null);
+  if (isDrawOffered && !lastDrawOffered) {
+    postToContent({ type: "DRAW_OFFERED" });
+  }
+  lastDrawOffered = isDrawOffered;
+}
+
 window.addEventListener("message", (event) => {
   if (event.source !== window || typeof event.data !== "object" || event.data === null) {
     return;
   }
 
   const data = event.data as UnknownRecord;
-  if (data.source !== CONTENT_SOURCE || data.target !== PAGE_SOURCE || data.type !== "APPLY_MOVE") {
+  if (data.source !== CONTENT_SOURCE || data.target !== PAGE_SOURCE) {
     return;
   }
 
-  if (typeof data.requestId !== "string" || typeof data.uci !== "string") {
-    return;
-  }
+  if (data.type === "APPLY_MOVE") {
+    if (typeof data.requestId !== "string" || typeof data.uci !== "string") {
+      return;
+    }
 
-  const result = applyMove(data.uci);
-  const fen = result.fen ?? readFen();
-  const snapshot = readGameClockSnapshot(fen);
+    const result = applyMove(data.uci);
+    const fen = result.fen ?? readFen();
+    const snapshot = readGameClockSnapshot(fen);
 
-  postToContent({
-    type: "MOVE_RESULT",
-    requestId: data.requestId,
-    ok: result.ok,
-    fen: result.fen,
-    error: result.error,
-    snapshot: snapshot ?? undefined
-  });
+    postToContent({
+      type: "MOVE_RESULT",
+      requestId: data.requestId,
+      ok: result.ok,
+      fen: result.fen,
+      error: result.error,
+      snapshot: snapshot ?? undefined
+    });
 
-  if (result.ok) {
-    emitFenIfChanged(true);
+    if (result.ok) {
+      emitFenIfChanged(true);
+    }
+  } else if (data.type === "APPLY_INTERACTION") {
+    if (typeof data.requestId !== "string" || typeof data.command !== "string") {
+      return;
+    }
+
+    const result = applyInteraction(data.command);
+    postToContent({
+      type: "INTERACTION_RESULT",
+      requestId: data.requestId,
+      ok: result.ok,
+      error: result.error
+    });
   }
 });
 
 window.setInterval(() => {
   emitFenIfChanged(false);
+  checkGameEvents();
 }, FEN_POLL_INTERVAL_MS);
 
 const initialFen = readFen();

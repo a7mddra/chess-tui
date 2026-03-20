@@ -16,6 +16,8 @@ export type GameClockSnapshot = {
   boardOrientation?: "w" | "b";
 };
 
+export type CommandInteraction = "new" | "resign" | "draw" | "accept" | "decline";
+
 export type ExtensionInboundMessage =
   | {
       type: "status";
@@ -46,13 +48,30 @@ export type ExtensionInboundMessage =
       type: "error";
       requestId?: string;
       error: string;
+    }
+  | {
+      type: "game-over";
+      resultMessage: string;
+    }
+  | {
+      type: "draw-offered";
+    }
+  | {
+      type: "game-url";
+      url: string;
     };
 
-export type ExtensionOutboundMessage = {
-  type: "move";
-  uci: string;
-  requestId: string;
-};
+export type ExtensionOutboundMessage = 
+  | {
+      type: "move";
+      uci: string;
+      requestId: string;
+    }
+  | {
+      type: "interaction";
+      command: CommandInteraction;
+      requestId: string;
+    };
 
 export type RelayMessage =
   | ExtensionInboundMessage
@@ -70,6 +89,9 @@ export type BridgeState = {
   latestFen: string | null;
   latestSnapshot: GameClockSnapshot | null;
   lastError: string | null;
+  lastGameOver: string | null;
+  lastDrawOfferedAt: number | null;
+  gameUrl: string | null;
 };
 
 export type MoveResult = {

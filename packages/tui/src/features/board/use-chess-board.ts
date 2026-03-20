@@ -240,8 +240,10 @@ export const useChessBoard = (
       const normalized = input.trim();
 
       // -- Square-click mode (two sequential single-square inputs combine) --
-      if (/^[a-h][1-8]$/i.test(normalized)) {
-        const sq = normalized.toLowerCase() as Square;
+      if (/^[a-h][1-8][qrbn]?$/i.test(normalized)) {
+        const sqMatch = /^([a-h][1-8])([qrbn])?$/i.exec(normalized);
+        const sq = sqMatch![1]!.toLowerCase() as Square;
+        const promotionStr = sqMatch![2]?.toLowerCase();
 
         const canSelectSquare = (target: Square): boolean => {
           const [tr, tc] = sqToCoords(target);
@@ -265,6 +267,7 @@ export const useChessBoard = (
           const entry: PremoveEntry = {
             from: selectedSquare as Square,
             to: sq,
+            promotion: promotionStr,
           };
           const success = attemptMove(entry);
           if (!success) {

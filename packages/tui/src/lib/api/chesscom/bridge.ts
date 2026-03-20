@@ -7,6 +7,7 @@ import type {
   MoveResult,
   PendingMove,
   RelayMessage,
+  CommandInteraction,
 } from "./types";
 
 const EXTENSION_PORT = 8765;
@@ -25,6 +26,9 @@ const initialBridgeState: BridgeState = {
   latestFen: null,
   latestSnapshot: null,
   lastError: null,
+  lastGameOver: null,
+  lastDrawOfferedAt: null,
+  gameUrl: null,
 };
 
 export class OnlineBridge {
@@ -36,6 +40,7 @@ export class OnlineBridge {
   private heartbeatTimer: NodeJS.Timeout | null = null;
   private state: BridgeState = initialBridgeState;
   private listeners = new Set<(state: BridgeState) => void>();
+  private ignoreGameOverUntil = 0;
 
   start(): void {
     if (!this.extensionServer) {
@@ -98,6 +103,67 @@ export class OnlineBridge {
         type: "move",
         requestId,
         uci: normalized,
+      };
+
+      this.extensionSocket?.send(JSON.stringify(payload), (err) => {
+        if (!err) {
+          return;
+        }
+
+        const pending = this.pendingMoves.get(requestId);
+        if (!pending) {
+          return;
+        }
+
+        clearTimeout(pending.timer);
+        this.pendingMoves.delete(requestId);
+        resolve({
+          ok: false,
+          error: err.message,
+        });
+      });
+    });
+  }
+
+  async sendInteraction(command: CommandInteraction): Promise<MoveResult> {
+    if (command === "new") {
+      this.ignoreGameOverUntil = Date.now() + 5000;
+      this.updateState({
+        latestFen: null,
+        latestSnapshot: null,
+        lastGameOver: null,
+        lastDrawOfferedAt: null,
+        socketEvent: "starting new game",
+      });
+    }
+
+    if (
+      !this.extensionSocket ||
+      this.extensionSocket.readyState !== WebSocket.OPEN
+    ) {
+      return {
+        ok: false,
+        error: "Extension bridge is not connected.",
+      };
+    }
+
+    const requestId = randomUUID();
+
+    return await new Promise<MoveResult>((resolve) => {
+      const timer = setTimeout(() => {
+        this.pendingMoves.delete(requestId);
+        resolve({
+          ok: false,
+          error: "Timed out waiting for interaction response.",
+        });
+      }, MOVE_TIMEOUT_MS);
+
+      this.pendingMoves.set(requestId, { resolve, timer });
+
+      const payload: ExtensionOutboundMessage = {
+        type: "interaction",
+        requestId,
+        command,
       };
 
       this.extensionSocket?.send(JSON.stringify(payload), (err) => {
@@ -294,6 +360,29 @@ export class OnlineBridge {
         this.updateState({
           socketEvent: `error: ${message.error}`,
           lastError: message.error,
+        });
+        return;
+      }
+      case "game-over": {
+        if (Date.now() < this.ignoreGameOverUntil) {
+          return;
+        }
+        this.updateState({
+          lastGameOver: message.resultMessage || null,
+          socketEvent: message.resultMessage ? `game-over: ${message.resultMessage}` : `game-active`,
+        });
+        return;
+      }
+      case "draw-offered": {
+        this.updateState({
+          lastDrawOfferedAt: Date.now(),
+          socketEvent: `draw-offered`,
+        });
+        return;
+      }
+      case "game-url": {
+        this.updateState({
+          gameUrl: message.url,
         });
         return;
       }

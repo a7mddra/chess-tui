@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { ApiPlayer } from "../index";
 import { BRIDGE_WS_URL, onlineBridge } from "./bridge";
 import { deriveOnlineState } from "./snapshot";
-import type { BridgeState, MoveResult } from "./types";
+import type { BridgeState, MoveResult, CommandInteraction } from "./types";
 
 export type OnlineGameView = {
   fen: string | null;
@@ -19,7 +19,11 @@ export type OnlineGameView = {
   extensionStatus: string;
   relayStatus: string;
   socketEvent: string;
+  gameUrl: string | null;
+  lastGameOver: string | null;
+  lastDrawOfferedAt: number | null;
   sendMove: (uci: string) => Promise<MoveResult>;
+  sendInteraction: (command: CommandInteraction) => Promise<MoveResult>;
 };
 
 export const useOnlineGame = (enabled: boolean): OnlineGameView => {
@@ -54,8 +58,8 @@ export const useOnlineGame = (enabled: boolean): OnlineGameView => {
   }, [enabled]);
 
   const derived = useMemo(
-    () => deriveOnlineState(state.latestSnapshot, state.latestFen, nowMs),
-    [state.latestSnapshot, state.latestFen, nowMs],
+    () => deriveOnlineState(state.latestSnapshot, state.latestFen, nowMs, state.lastGameOver !== null),
+    [state.latestSnapshot, state.latestFen, nowMs, state.lastGameOver],
   );
 
   return {
@@ -70,6 +74,10 @@ export const useOnlineGame = (enabled: boolean): OnlineGameView => {
     extensionStatus: state.extensionStatus,
     relayStatus: state.relayStatus,
     socketEvent: state.socketEvent,
+    gameUrl: state.gameUrl,
+    lastGameOver: state.lastGameOver,
+    lastDrawOfferedAt: state.lastDrawOfferedAt,
     sendMove: (uci: string) => onlineBridge.sendMove(uci),
+    sendInteraction: (cmd: CommandInteraction) => onlineBridge.sendInteraction(cmd),
   };
 };

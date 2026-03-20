@@ -1,4 +1,4 @@
-import type { Command } from "./config/commands";
+import type { Command } from "./commands";
 
 // ---------------------------------------------------------------------------
 // Fuzzy command search — scores every command against a user query and

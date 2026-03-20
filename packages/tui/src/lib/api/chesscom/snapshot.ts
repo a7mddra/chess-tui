@@ -48,13 +48,14 @@ function computeDisplayClock(
   player: PlayerClockSnapshot,
   nowMs: number,
   snapshotTakenAt: number,
+  isGameOver: boolean,
 ): string {
   if (typeof player.clockMs !== "number") {
     return player.clockText ?? "00:00";
   }
 
   const elapsedSinceSnapshot = Math.max(0, nowMs - snapshotTakenAt);
-  const liveMs = player.isTurn
+  const liveMs = (player.isTurn && !isGameOver)
     ? Math.max(0, player.clockMs - elapsedSinceSnapshot)
     : player.clockMs;
   return formatClockFromMs(liveMs);
@@ -167,6 +168,7 @@ export function deriveOnlineState(
   snapshot: GameClockSnapshot | null,
   fallbackFen: string | null,
   nowMs: number,
+  isGameOver: boolean = false,
 ): DerivedOnlineState {
   if (!snapshot) {
     return {
@@ -178,11 +180,12 @@ export function deriveOnlineState(
     };
   }
 
-  const userClock = computeDisplayClock(snapshot.user, nowMs, snapshot.takenAt);
+  const userClock = computeDisplayClock(snapshot.user, nowMs, snapshot.takenAt, isGameOver);
   const opponentClock = computeDisplayClock(
     snapshot.opponent,
     nowMs,
     snapshot.takenAt,
+    isGameOver,
   );
 
   const topSource =
