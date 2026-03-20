@@ -71,7 +71,7 @@ Play against the Stockfish engine locally. Adjustable Elo from 100 to 3000. No b
 - **Live board rendering** with 4 color themes
 - **Premove system** with speculative move hints
 - **Detachable board window** — pop the board into a separate terminal and zoom independently
-- **Slash commands** — `/theme`, `/new`, `/resign`, `/flip`, `/diff`, `/undo`
+- **Slash commands** — `/theme`, `/new`, `/resign`, `/draw`, `/accept`, `/decline`, `/analyze`, `/flip`, `/diff`, `/undo`
 - **User preferences** persisted to `~/.config/chess-tui/`
 
 ## Documentation
@@ -82,7 +82,7 @@ Play against the Stockfish engine locally. Adjustable Elo from 100 to 3000. No b
 - [Testing](docs/testing.md) — test lifecycle and fixture handling
 - [Contributing](docs/contributing.md) — setup, conventions, and where to add code
 - [Roadmap](docs/roadmap.md) — what's done and what's next
-- [Security](security.md) — data boundary and fair-play policy
+- [Security](SECURITY.md) — data boundary and fair-play policy
 
 ## Development
 
@@ -99,7 +99,7 @@ npm run tsc:ext      # Type-check extension
 
 ## Security & Fair Play
 
-chess-tui does not endorse cheating. The extension injects moves the same way a human mouse click does — it calls the same `board.move()` function. However, connecting external engines to live games violates chess.com's terms of service. See [security.md](security.md) for the full policy.
+chess-tui does not endorse cheating. The extension injects moves the same way a human mouse click does — it calls the same `board.move()` function. However, connecting external engines to live games violates chess.com's terms of service. See [SECURITY.md](SECURITY.md) for the full policy.
 
 ## License
 

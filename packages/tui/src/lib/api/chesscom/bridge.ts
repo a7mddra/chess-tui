@@ -15,8 +15,20 @@ const RELAY_PORT = 8766;
 const MOVE_TIMEOUT_MS = 8000;
 const HEARTBEAT_INTERVAL_MS = 15000;
 const UCI_MOVE_REGEX = /^[a-h][1-8][a-h][1-8][qrbn]?$/i;
+const CHESSCOM_GAME_ID_REGEX = /\/game\/(?:live\/)?(\d+)/i;
 
-export const BRIDGE_WS_URL = `ws://127.0.0.1:${EXTENSION_PORT}`;
+export const getBridgeWsUrl = (gameId: string | null): string => {
+  if (!gameId) {
+    return `ws://127.0.0.1:${EXTENSION_PORT}`;
+  }
+
+  return `ws://127.0.0.1:${EXTENSION_PORT}/${gameId}`;
+};
+
+const extractChesscomGameId = (url: string): string | null => {
+  const match = url.match(CHESSCOM_GAME_ID_REGEX);
+  return match?.[1] ?? null;
+};
 
 const initialBridgeState: BridgeState = {
   extensionConnection: "disconnected",
@@ -29,6 +41,7 @@ const initialBridgeState: BridgeState = {
   lastGameOver: null,
   lastDrawOfferedAt: null,
   gameUrl: null,
+  gameId: null,
 };
 
 export class OnlineBridge {
@@ -319,9 +332,11 @@ export class OnlineBridge {
         return;
       }
       case "game-state": {
+        this.ignoreGameOverUntil = 0;
         this.updateState({
           latestSnapshot: message.snapshot,
           latestFen: message.snapshot.fen ?? this.state.latestFen,
+          lastGameOver: null,
         });
         return;
       }
@@ -380,9 +395,18 @@ export class OnlineBridge {
         });
         return;
       }
+      case "draw-canceled": {
+        this.updateState({
+          lastDrawOfferedAt: null,
+          socketEvent: `draw-canceled`,
+        });
+        return;
+      }
       case "game-url": {
+        const gameId = extractChesscomGameId(message.url);
         this.updateState({
           gameUrl: message.url,
+          gameId,
         });
         return;
       }

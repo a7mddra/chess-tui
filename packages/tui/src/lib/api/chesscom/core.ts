@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ApiPlayer } from "../index";
-import { BRIDGE_WS_URL, onlineBridge } from "./bridge";
+import { getBridgeWsUrl, onlineBridge } from "./bridge";
 import { deriveOnlineState } from "./snapshot";
 import type { BridgeState, MoveResult, CommandInteraction } from "./types";
 
@@ -20,6 +20,7 @@ export type OnlineGameView = {
   relayStatus: string;
   socketEvent: string;
   gameUrl: string | null;
+  gameId: string | null;
   lastGameOver: string | null;
   lastDrawOfferedAt: number | null;
   sendMove: (uci: string) => Promise<MoveResult>;
@@ -70,11 +71,12 @@ export const useOnlineGame = (enabled: boolean): OnlineGameView => {
     boardOrientation: derived.boardOrientation,
     orientationReady: derived.orientationReady,
     bridgeConnection: state.extensionConnection,
-    bridgeEndpoint: BRIDGE_WS_URL,
+    bridgeEndpoint: getBridgeWsUrl(state.gameId),
     extensionStatus: state.extensionStatus,
     relayStatus: state.relayStatus,
     socketEvent: state.socketEvent,
     gameUrl: state.gameUrl,
+    gameId: state.gameId,
     lastGameOver: state.lastGameOver,
     lastDrawOfferedAt: state.lastDrawOfferedAt,
     sendMove: (uci: string) => onlineBridge.sendMove(uci),

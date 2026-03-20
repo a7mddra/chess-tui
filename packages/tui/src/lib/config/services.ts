@@ -24,12 +24,12 @@ export const github = {
 // Chess.com
 // =============================================================================
 
-const CHESSCOM_BASE = (sub: string) => `https://chess.com/${sub}`;
+const CHESSCOM_BASE = (sub: string) => `https://www.chess.com/${sub}`;
 
 export const chesscom = {
   base: CHESSCOM_BASE("home"),
   play: CHESSCOM_BASE("play/online/new"),
   game: (id: string) => CHESSCOM_BASE(`game/live/${id}`),
-  analyze: (id: string) => CHESSCOM_BASE(`game/live/${id}/review`),
+  analyze: (id: string) => CHESSCOM_BASE(`analysis/game/live/${id}/review`),
   member: (username: string) => CHESSCOM_BASE(`member/${username}`),
 };

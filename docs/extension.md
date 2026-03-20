@@ -58,13 +58,21 @@ Service worker that runs the WebSocket server:
 - Routes messages between the TUI (WebSocket client) and content scripts (chrome.runtime)
 - Handles connection/disconnection lifecycle
 - Sends `status` messages when the extension connects or disconnects
+- On connect, resolves the active Chess.com tab and emits `game-url` to seed TUI state
+- Triggers a `SYNC_REQUEST` to immediately fetch fresh game state after reconnect
 
 ### `protocol.ts` (~130 lines)
 
 Shared type definitions:
-- Message type enums (`ping`, `pong`, `move`, `move-result`, `fen`, `game-state`, `status`, `error`)
+- Message type enums (`ping`, `pong`, `move`, `move-result`, `fen`, `game-state`, `status`, `error`, `game-over`, `draw-offered`, `draw-canceled`, `game-url`)
 - Type interfaces for each message shape
 - Constants (WebSocket URL, timeouts)
+
+## Recent behavior updates
+
+- Draw offer lifecycle now has both edges: `DRAW_OFFERED` and `DRAW_CANCELED`.
+- The first bridge handshake now includes the current tab URL (`game-url`), so TUI can derive `gameId` immediately.
+- This `gameId` is consumed by `/analyze` to open the correct review URL.
 
 ## Security Boundary
 

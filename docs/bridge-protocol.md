@@ -7,6 +7,7 @@ This document defines the message contract between the TUI (or test harnesses) a
 
 ## Transport
 - WebSocket endpoint: `ws://127.0.0.1:8765` (fallback `ws://localhost:8765` in extension client)
+- TUI status line may display `ws://127.0.0.1:8765/<gameId>` once the active Chess.com game URL is known.
 - Messages are JSON objects.
 
 ## Inbound (CLI -> Extension)
@@ -77,6 +78,27 @@ This document defines the message contract between the TUI (or test harnesses) a
 }
 ```
 
+### Game Over
+```json
+{ "type": "game-over", "resultMessage": "optional-result-string" }
+```
+
+### Draw Offered
+```json
+{ "type": "draw-offered" }
+```
+
+### Draw Canceled
+```json
+{ "type": "draw-canceled" }
+```
+
+### Game URL
+```json
+{ "type": "game-url", "url": "https://www.chess.com/game/live/166211707474" }
+```
+- Consumers can derive and store `gameId` from this URL for actions such as opening review pages.
+
 ### Error
 ```json
 { "type": "error", "error": "message", "requestId": "optional-id" }
@@ -91,15 +113,17 @@ This document defines the message contract between the TUI (or test harnesses) a
 ## Planned Extensions (Phase 2)
 
 ### Outbound events
-- `game.outcome` (`win|lose|draw|timeout|abandon`) — *not yet implemented*
+- `game-over` (`resultMessage`) — *implemented*
+- `draw-offered` — *implemented*
+- `draw-canceled` — *implemented*
+- `game-url` — *implemented*
 - `game.network` (`degraded|recovered`) — *not yet implemented*
-- `game.offer` (`draw_offer_received`, `draw_offer_cleared`) — *not yet implemented*
 
 ### Inbound commands
-- `resign` — *not yet implemented (TUI uses URL hooks as workaround)*
-- `offer_draw` — *not yet implemented*
-- `new_game` (with time-control payload) — *not yet implemented*
-- `open_url` (`analysis`, `signin`, `signout`, `new_game`) — *partially implemented via `xdg-open` in TUI*
+- `resign` — *implemented through extension interaction routing*
+- `offer_draw` — *implemented as interaction (`draw`)*
+- `new_game` — *implemented as interaction (`new`)*
+- `open_url` (`analysis`, `signin`, `signout`, `new_game`) — *TUI handles URL opening directly (`/analyze` uses gameId from bridge state)*
 
 ## Compatibility Policy
 - Additive changes are preferred.

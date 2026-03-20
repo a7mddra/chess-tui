@@ -48,7 +48,7 @@ chess-tui/
 ├── tests/            # Root-level integration tests
 ├── docs/             # This documentation
 ├── scripts/          # Build and fixture sanitization scripts
-├── security.md       # Project security policy
+├── SECURITY.md       # Project security policy
 └── package.json      # npm workspaces root
 ```
 
@@ -62,7 +62,7 @@ Four files, flat structure. See [extension.md](./extension.md) for deep dive.
 |---|---|
 | `page-bridge.ts` | Injected into chess.com page. Calls `board.move()`, scrapes FEN/clocks/players from DOM and game objects. |
 | `content.ts` | Content script. Relays messages between page-bridge and background via `chrome.runtime`. |
-| `background.ts` | Service worker. Runs WebSocket server on `ws://127.0.0.1:8765`. Routes messages between extension and TUI. |
+| `background.ts` | Service worker. Runs WebSocket server on `ws://127.0.0.1:8765`. Routes messages between extension and TUI, emits `game-url`, and requests initial sync on connect. |
 | `protocol.ts` | Shared message type definitions and constants. |
 
 ## TUI (`packages/tui`)
@@ -156,6 +156,7 @@ Path alias `@/` maps to `packages/tui/src/`. Most imports go through barrel file
 7. User types a move (e.g. `e2e4`) → `InputBox` → `useChessBoard.handleUserInput` → validates with chess.js
 8. Move sent via `onlineBridge.sendMove(uci)` → WebSocket → background → content → page-bridge → `board.move()`
 9. Chess.com processes the move, page updates, extension detects new FEN → cycle repeats
+10. Extension also streams `game-url`; TUI derives `gameId` and uses it for `/analyze` review links
 
 ## Data Flow: Stockfish Game
 

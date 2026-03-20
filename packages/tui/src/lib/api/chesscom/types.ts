@@ -41,6 +41,28 @@ export type ExtensionInboundMessage =
     }
   | {
       type: "pong";
+      ts: number;
+    }
+  | {
+      type: "error";
+      error: string;
+    }
+  | {
+      type: "game-over";
+      resultMessage?: string;
+    }
+  | {
+      type: "draw-offered";
+    }
+  | {
+      type: "draw-canceled";
+    }
+  | {
+      type: "game-url";
+      url: string;
+    }
+  | {
+      type: "pong";
       requestId?: string;
       ts: number;
     }
@@ -92,6 +114,7 @@ export type BridgeState = {
   lastGameOver: string | null;
   lastDrawOfferedAt: number | null;
   gameUrl: string | null;
+  gameId: string | null;
 };
 
 export type MoveResult = {

@@ -667,6 +667,8 @@ function checkGameEvents(): void {
   const isDrawOffered = !!(drawOfferEl && (drawOfferEl as HTMLElement).offsetParent !== null);
   if (isDrawOffered && !lastDrawOffered) {
     postToContent({ type: "DRAW_OFFERED" });
+  } else if (!isDrawOffered && lastDrawOffered) {
+    postToContent({ type: "DRAW_CANCELED" });
   }
   lastDrawOffered = isDrawOffered;
 }

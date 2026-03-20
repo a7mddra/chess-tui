@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { Box, Text, useInput, useStdout } from "ink";
-import { exec, type ChildProcess } from "node:child_process";
+import { type ChildProcess } from "node:child_process";
 import { Chess } from "chess.js";
 import process from "node:process";
 import { useRouter, type GameMode } from "@/router/AppRouter";
@@ -11,6 +11,7 @@ import {
   BOARD_THEME_OPTIONS,
   DEFAULT_BOARD_THEME_ID,
   spawnBoardWindow,
+  openExternalUrl,
   DIALOG_HOWTO,
   DIALOG_BROWSER_START,
   DIALOG_DRAW_OFFERED,
@@ -21,6 +22,7 @@ import {
   DIALOG_INVALID_INPUT,
   DIALOG_BLACK_WON_RESIGNATION,
   DIALOG_WHITE_WON_RESIGNATION,
+  chesscom,
   getMockGameSnapshot,
   useOnlineGame,
   useStockfishGame,
@@ -170,20 +172,18 @@ export const GameScreen = ({ mode }: GameScreenProps): React.JSX.Element => {
 
   useEffect(() => {
     if (mode === "chesscom" && online.lastGameOver) {
-      const cleaned = online.lastGameOver.replace(/^Game Over\s*/i, "");
-      const parenIdx = cleaned.indexOf("(");
-      const lines = parenIdx > 0
-        ? ["Game Over", cleaned.slice(0, parenIdx).trim(), cleaned.slice(parenIdx).trim()]
+      const cleaned = online.lastGameOver
+        .replace(/^Game Over\s*/i, "")
+        .replace(/\(\d+\)\s*/g, "");
+      const lastParen = cleaned.lastIndexOf("(");
+      const lines = lastParen > 0
+        ? ["Game Over", cleaned.slice(0, lastParen).trim(), cleaned.slice(lastParen).trim()]
         : ["Game Over", cleaned];
       setDialogLines(lines.filter(Boolean));
     }
   }, [mode, online.lastGameOver]);
 
-  useEffect(() => {
-    if (mode === "chesscom" && online.lastDrawOfferedAt) {
-      setDialogLines(DIALOG_DRAW_OFFERED.lines);
-    }
-  }, [mode, online.lastDrawOfferedAt]);
+
 
   useEffect(() => {
     if (mode !== "stockfish") {
@@ -274,13 +274,15 @@ export const GameScreen = ({ mode }: GameScreenProps): React.JSX.Element => {
     ? DIALOG_PROMOTION_PROMPT.lines
     : isBridgeWaitingForGame
       ? DIALOG_BROWSER_START.lines
-      : mode === "stockfish"
-        ? (stockfish.gameOver
-          ? (stockfish.winner === "w"
-              ? DIALOG_WHITE_WON_RESIGNATION.lines
-              : DIALOG_BLACK_WON_RESIGNATION.lines)
-          : stockfishIntroOpen ? DIALOG_STOCKFISH.lines : DIALOG_HOWTO.lines)
-        : DIALOG_HOWTO.lines;
+      : mode === "chesscom"
+        ? (online.lastDrawOfferedAt ? DIALOG_DRAW_OFFERED.lines : DIALOG_HOWTO.lines)
+        : mode === "stockfish"
+          ? (stockfish.gameOver
+            ? (stockfish.winner === "w"
+                ? DIALOG_WHITE_WON_RESIGNATION.lines
+                : DIALOG_BLACK_WON_RESIGNATION.lines)
+            : stockfishIntroOpen ? DIALOG_STOCKFISH.lines : DIALOG_HOWTO.lines)
+          : DIALOG_HOWTO.lines;
   const lockDialog = themePickerOpen || pendingPromotionMove !== null;
   const activeThemeId = themePickerOpen
     ? (BOARD_THEME_OPTIONS[themePickerIndex]?.id ?? boardThemeId)
@@ -496,23 +498,11 @@ export const GameScreen = ({ mode }: GameScreenProps): React.JSX.Element => {
         }
 
         if (commandId === "analyze") {
-          if (online.gameUrl) {
-            const match = online.gameUrl.match(/\/game\/live\/([^/?#]+)/);
-            if (match && match[1]) {
-              const url = `https://www.chess.com/game/live/${match[1]}/review`;
-              if (process.platform === "darwin") {
-                 exec(`open "${url}"`);
-              } else if (process.platform === "win32") {
-                 exec(`start "" "${url}"`);
-              } else {
-                 exec(`xdg-open "${url}"`);
-              }
-              setDialogLines(["Opening game review in browser..."]);
-            } else {
-              setDialogLines(["Error: Could not extract game ID from URL."]);
-            }
+          if (online.gameId) {
+            void openExternalUrl(chesscom.analyze(online.gameId));
+            setDialogLines(["Opening game review in browser..."]);
           } else {
-            setDialogLines(["Error: Game URL not available yet."]);
+            setDialogLines(["Error: Game ID not available yet."]);
           }
           return;
         }

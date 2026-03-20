@@ -36,13 +36,31 @@ function connectSocket(): void {
   const wsUrl = WS_URL_CANDIDATES[wsUrlIndex] ?? WS_URL_CANDIDATES[0];
   socket = new WebSocket(wsUrl);
 
-  socket.addEventListener("open", () => {
+  socket.addEventListener("open", async () => {
     reconnectAttempt = 0;
     sendToSocket({
       type: "status",
       status: "connected",
       detail: `Extension bridge connected (${wsUrl}).`
     });
+
+    const targetTabId = await resolveTargetTab();
+    if (targetTabId !== null) {
+      chrome.tabs.get(targetTabId, (tab) => {
+        if (tab.url) {
+          sendToSocket({
+            type: "game-url",
+            url: tab.url
+          });
+        }
+      });
+      chrome.scripting.executeScript({
+        target: { tabId: targetTabId },
+        func: () => {
+          window.postMessage({ type: "SYNC_REQUEST", source: "chess-tui-content" }, "*");
+        }
+      });
+    }
   });
 
   socket.addEventListener("message", (event) => {
