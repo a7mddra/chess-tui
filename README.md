@@ -1,4 +1,6 @@
-<h1 align="center">chess-tui</h1>
+<p align="center">
+  <img src="docs/logo.png" alt="chess-tui" />
+</p>
 
 <p align="center">Play chess.com from your terminal. Your real account, your real Elo, no ads.</p>
 
