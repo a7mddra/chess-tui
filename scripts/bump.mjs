@@ -31,15 +31,14 @@ try {
 
 console.log(`\x1b[36mBumping ${target.toUpperCase()} to v${version}...\x1b[0m`);
 
-// 1. Update VERSION file
-fs.writeFileSync("VERSION", version + "\n");
-
 // Update JSON helper
 function updateJson(filePath, newVersion) {
   const data = JSON.parse(fs.readFileSync(filePath, "utf8"));
-  data.version = newVersion;
-  fs.writeFileSync(filePath, JSON.stringify(data, null, 2) + "\n");
-  console.log(`Updated ${filePath}`);
+  if (data.version !== newVersion) {
+    data.version = newVersion;
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2) + "\n");
+    console.log(`Updated ${filePath}`);
+  }
 }
 
 try {
@@ -49,16 +48,18 @@ try {
 
     const readmePath = "README.md";
     let readme = fs.readFileSync(readmePath, "utf8");
-    readme = readme.replace(
+    const updatedReadme = readme.replace(
       /releases\/download\/v[^\/]+\/chess-tui-extension\.zip/g,
       `releases/download/v${version}/chess-tui-extension.zip`,
     );
-    fs.writeFileSync(readmePath, readme);
-    console.log(`Updated README.md release link`);
+    if (readme !== updatedReadme) {
+      fs.writeFileSync(readmePath, updatedReadme);
+      console.log(`Updated README.md release link`);
+    }
 
     execSync("npm run format", { stdio: "inherit" });
     execSync("git add .", { stdio: "inherit" });
-    execSync(`git commit -m "chore(release): ext v${version}"`, {
+    execSync(`git commit --allow-empty -m "chore(release): ext v${version}"`, {
       stdio: "inherit",
     });
     execSync(`git tag v${version}`, { stdio: "inherit" });
@@ -71,28 +72,40 @@ try {
   }
 
   if (target === "tui") {
+    // Only update VERSION file for TUI
+    fs.writeFileSync("VERSION", version + "\n");
+    console.log(`Updated VERSION`);
+
     updateJson("package.json", version);
     updateJson("packages/tui/package.json", version);
 
     execSync("npm run format", { stdio: "inherit" });
     execSync("git add .", { stdio: "inherit" });
-    execSync(`git commit -m "chore(release): tui v${version}"`, {
+    execSync(`git commit --allow-empty -m "chore(release): tui v${version}"`, {
       stdio: "inherit",
     });
     execSync("git push origin main", { stdio: "inherit" });
 
     console.log(`\x1b[36mPublishing to NPM registry...\x1b[0m`);
+
+    // Check NPM Auth automatically
     try {
-      execSync("npm publish --workspace chess-tui", { stdio: "inherit" });
-    } catch (err) {
-      console.error(
-        "\x1b[33mWarning: NPM Publish failed. Are you logged in via \`npm login\`?\x1b[0m",
+      execSync("npm whoami", { stdio: "ignore" });
+    } catch {
+      console.log(
+        `\x1b[33mNot authenticated to NPM. Initializing interactive login...\x1b[0m`,
       );
+      execSync("npm login", { stdio: "inherit" });
     }
 
-    console.log(
-      `\x1b[32mSuccessfully bumped TUI to v${version}, pushed to GitHub, and fired NPM publish.\x1b[0m`,
-    );
+    try {
+      execSync("npm publish --workspace chess-tui", { stdio: "inherit" });
+      console.log(
+        `\x1b[32mSuccessfully bumped TUI to v${version}, pushed to GitHub, and fired NPM publish.\x1b[0m`,
+      );
+    } catch (err) {
+      console.error("\x1b[31mError: NPM Publish failed unexpectedly.\x1b[0m");
+    }
   }
 } catch (error) {
   console.error(`\x1b[31mAn error occurred during the bump process.\x1b[0m`);
