@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/media/logo.png" alt="chess-tui" height="55">
+  <img src="docs/media/logo.png" alt="chess-tui" height="100">
 </p>
 
 <p align="center">
