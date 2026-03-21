@@ -1,25 +1,14 @@
 <p align="center">
-  <img src="docs/logo.png" alt="chess-tui" />
+  <img src="docs/media/logo.png" alt="chess-tui" width="200"/>
+  <img src="docs/media/demo.gif" alt="chess-tui demo" />
 </p>
 
-<p align="center">Play chess.com from your terminal. Your real account, your real Elo, no ads.</p>
+<p align="center">Play chess.com from your terminal. Your real account, your real Elo, ad-free.</p>
 
 <p align="center">
   <a href="https://www.npmjs.com/package/chess-tui"><img alt="npm" src="https://img.shields.io/npm/v/chess-tui?style=flat-square" /></a>
   <a href="https://github.com/a7mddra/chess-tui/actions/workflows/release-ext.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/a7mddra/chess-tui/release-ext.yml?style=flat-square" /></a>
 </p>
-
-## What is this?
-
-chess-tui is an alternative frontend for chess.com built as a terminal UI. It connects to chess.com's real infrastructure — your account, your rating, your opponents — through a Chrome extension that bridges the browser and terminal via WebSocket. You play in your terminal while the Chess.com tab sits minimized in the dock.
-
-It also includes an offline mode where you play against Stockfish directly in the terminal, no browser needed.
-
-## Why?
-
-In the era of AI coding tools, developers spend more time in terminals than ever. TUIs are everywhere — claude-code, gemini-cli, copilot-cli. You're already in the terminal. Why tab-switch to a browser to play chess between prompts?
-
-chess-tui brings chess.com into your terminal. Real games, real matchmaking, real Elo — just a different interface.
 
 ## How it works
 
@@ -31,38 +20,53 @@ Chess.com exposes `board.move()` in the page's JavaScript scope. Our extension u
 
 ## Quick Start
 
-**Prerequisite:** Ensure you have [Node.js and npm](https://nodejs.org/) installed on your machine.
+**Prerequisite:**
+
+- Ensure you have [Node.js and npm](https://nodejs.org/) installed on your machine.
+- Ensure you have a [Chrome](https://www.google.com/chrome/) browser. (more browsers coming soon)
+- Ensure you have a [chess.com](https://chess.com) account.
 
 ### 1. Install the CLI
+
 Install the package globally:
+
 ```bash
 npm install -g chess-tui
 ```
 
 ### 2. Install the Bridge Extension
+
 To connect to your real chess.com games, you need the companion Chrome extension:
-1. Download `chess-tui-extension.zip` from **GitHub Releases**.
+
+1. Download `chess-tui-extension.zip` from **[GitHub Releases](https://github.com/a7mddra/chess-tui/releases/download/v0.1.0/chess-tui-extension.zip)**.
 2. Extract the zip file.
-3. Open `chrome://extensions` in your browser.
+3. Open [`chrome://extensions`](chrome://extensions) in your browser.
 4. Enable **"Developer mode"** (toggle in the top right).
 5. Click **"Load unpacked"** and select the extracted folder.
-*(Note: If Chrome shows any warnings or errors on the extension card, you can safely ignore them—they are harmless).*
+   _(Note: If Chrome shows any errors on the extension card, safely ignore them)._
 
 ### 3. Play!
+
 1. Open [chess.com](https://chess.com) in Chrome and start or resume a game.
 2. Open your terminal **anywhere** and run:
+
 ```bash
 chess-tui
 # or simply:
 chess
 ```
+
 Enjoy playing ad-free right from your terminal!
+
+### 4. Troubleshooting
+
+80% of your expected problems/bugs will be in connection between chrome and terminal, the only way to debug is chrome-tab reload and tui restart till you make them coubled.
 
 ## Game Modes
 
 ### Online (chess.com)
 
-Connect to your chess.com session through the extension. Play live games with real opponents, see clocks, elo, and captured pieces — all in the terminal.
+Connect to your chess.com session through the extension. Play live games with real opponents, see clocks, elo, draw offers, and captured pieces — all in the terminal.
 
 ### Offline (Stockfish)
 
