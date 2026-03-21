@@ -3,7 +3,9 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/a7mddra/chess-tui/actions/workflows/release-ext.yml"><img src="https://github.com/a7mddra/chess-tui/actions/workflows/release-ext.yml/badge.svg" alt="Build status"></a> <a href="https://www.npmjs.com/package/chess-tui"><img src="https://img.shields.io/npm/v/chess-tui" alt="npm"></a> <a href="https://github.com/a7mddra/chess-tui/blob/main/LICENSE"><img src="https://img.shields.io/github/license/a7mddra/chess-tui" alt="license"></a>
+  <a href="https://github.com/a7mddra/chess-tui/actions/workflows/release-ext.yml"><img src="https://github.com/a7mddra/chess-tui/actions/workflows/release-ext.yml/badge.svg" alt="Build status"></a> <a href="https://www.npmjs.com/package/chess-tui"><img src="https://img.shields.io/npm/v/chess-tui" alt="npm"></a> <a href="https://github.com/a7mddra/chess-tui/releases">
+  <img src="https://img.shields.io/github/v/release/a7mddra/chess-tui?sort=semver&color=blue"" alt="release">
+</a> <a href="https://github.com/a7mddra/chess-tui/blob/main/LICENSE"><img src="https://img.shields.io/github/license/a7mddra/chess-tui" alt="license"></a>
 </p>
 
 <p align="center">
