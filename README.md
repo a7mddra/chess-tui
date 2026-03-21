@@ -1,19 +1,34 @@
 <p align="center">
   <img src="docs/media/logo.png" alt="chess-tui" width="200"/>
+
+  <table align="center">
+    <tr>
+      <td align="center">
+        <a href="https://github.com/a7mddra/chess-tui/actions/workflows/release-ext.yml">
+          <img alt="Build status" src="https://github.com/a7mddra/chess-tui/actions/workflows/release-ext.yml/badge.svg" />
+        </a>
+      </td>
+      <td align="center">
+        <a href="https://www.npmjs.com/package/chess-tui">
+          <img alt="npm" src="https://img.shields.io/npm/v/chess-tui" />
+        </a>
+      </td>
+      <td align="center">
+        <a href="https://github.com/a7mddra/chess-tui/blob/main/LICENSE">
+          <img alt="license" src="https://img.shields.io/github/license/a7mddra/chess-tui" />
+        </a>
+      </td>
+    </tr>
+  </table>
+
   <img src="docs/media/demo.gif" alt="chess-tui demo" />
 </p>
-
 <p align="center">Play chess.com from your terminal. Your real account, your real Elo, ad-free.</p>
-
-<p align="center">
-  <a href="https://www.npmjs.com/package/chess-tui"><img alt="npm" src="https://img.shields.io/npm/v/chess-tui?style=flat-square" /></a>
-  <a href="https://github.com/a7mddra/chess-tui/actions/workflows/release-ext.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/a7mddra/chess-tui/release-ext.yml?style=flat-square" /></a>
-</p>
 
 ## How it works
 
 ```
-chess.com tab  ←→  Chrome extension  ←→  WebSocket  ←→  Terminal UI (Ink/React)
+chess.com tab  ←→  WebSocket  ←→  Terminal UI (Ink/React)
 ```
 
 Chess.com exposes `board.move()` in the page's JavaScript scope. Our extension uses this to inject moves and scrape game state (FEN, clocks, player info) from the DOM. The TUI renders everything in the terminal and sends moves back through the same pipeline while the tab is minimized.
