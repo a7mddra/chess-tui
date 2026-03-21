@@ -1,28 +1,23 @@
 <p align="center">
-  <img src="docs/media/logo.png" alt="chess-tui" width="200"/>
-
-  <table align="center">
-    <tr>
-      <td align="center">
-        <a href="https://github.com/a7mddra/chess-tui/actions/workflows/release-ext.yml">
-          <img alt="Build status" src="https://github.com/a7mddra/chess-tui/actions/workflows/release-ext.yml/badge.svg" />
-        </a>
-      </td>
-      <td align="center">
-        <a href="https://www.npmjs.com/package/chess-tui">
-          <img alt="npm" src="https://img.shields.io/npm/v/chess-tui" />
-        </a>
-      </td>
-      <td align="center">
-        <a href="https://github.com/a7mddra/chess-tui/blob/main/LICENSE">
-          <img alt="license" src="https://img.shields.io/github/license/a7mddra/chess-tui" />
-        </a>
-      </td>
-    </tr>
-  </table>
-
-  <img src="docs/media/demo.gif" alt="chess-tui demo" />
+  <img src="docs/media/logo.png" alt="chess-tui" height="55">
 </p>
+
+<p align="center">
+  <a href="https://github.com/a7mddra/chess-tui/actions/workflows/release-ext.yml">
+    <img src="https://github.com/a7mddra/chess-tui/actions/workflows/release-ext.yml/badge.svg" alt="Build status">
+  </a>
+  <a href="https://www.npmjs.com/package/chess-tui">
+    <img src="https://img.shields.io/npm/v/chess-tui" alt="npm">
+  </a>
+  <a href="https://github.com/a7mddra/chess-tui/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/a7mddra/chess-tui" alt="license">
+  </a>
+</p>
+
+<p align="center">
+  <img src="docs/media/demo.gif" alt="chess-tui demo">
+</p>
+
 <p align="center">Play chess.com from your terminal. Your real account, your real Elo, ad-free.</p>
 
 ## How it works
