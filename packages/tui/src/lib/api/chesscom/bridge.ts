@@ -1,3 +1,6 @@
+// Copyright 2026 a7mddra
+// SPDX-License-Identifier: MIT
+
 import { randomUUID } from "node:crypto";
 import { WebSocket, WebSocketServer } from "ws";
 import type {
@@ -384,7 +387,9 @@ export class OnlineBridge {
         }
         this.updateState({
           lastGameOver: message.resultMessage || null,
-          socketEvent: message.resultMessage ? `game-over: ${message.resultMessage}` : `game-active`,
+          socketEvent: message.resultMessage
+            ? `game-over: ${message.resultMessage}`
+            : `game-active`,
         });
         return;
       }

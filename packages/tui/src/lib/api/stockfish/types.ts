@@ -1,3 +1,6 @@
+// Copyright 2026 a7mddra
+// SPDX-License-Identifier: MIT
+
 export type EngineScore = {
   kind: "cp" | "mate";
   value: number;

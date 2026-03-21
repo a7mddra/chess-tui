@@ -1,3 +1,6 @@
+// Copyright 2026 a7mddra
+// SPDX-License-Identifier: MIT
+
 import { Square } from "chess.js";
 import { type BoardCell } from "@/lib/chess/types";
 import { PIECE_TPLS, isPieceKind } from "@/lib/chess/piece";
@@ -21,19 +24,10 @@ export const coordsToSq = (r: number, c: number): Square | null => {
   return `${f}${row}` as Square;
 };
 
-// ---------------------------------------------------------------------------
-// Move Generation
-// ---------------------------------------------------------------------------
-
-/**
- * Returns speculative valid moves for a given piece on the board.
- * This ignores check, pins, and strictly accepts the first piece hit in a ray,
- * because it's generating speculative premoves for the frontend.
- */
 export const getSpeculativeMoves = (
   board: BoardCell[][],
   square: Square,
-  turnColor: "w" | "b"
+  turnColor: "w" | "b",
 ): string[] => {
   const [r, c] = sqToCoords(square);
   const cell = board[r]?.[c];
@@ -50,32 +44,25 @@ export const getSpeculativeMoves = (
 
   const addIfValid = (nr: number, nc: number): boolean => {
     const sq = coordsToSq(nr, nc);
-    if (!sq) return false; // out of bounds
+    if (!sq) return false;
 
     const targetCell = board[nr]?.[nc];
-    
-    // Always add the square (speculative - target might move away or be replaced)
+
     moves.push(sq);
 
-    // Stop sliding if we hit ANY piece (friend or foe)
     if (targetCell) return false;
-    
-    return true; // Keep sliding
+
+    return true;
   };
 
-  // -------------------------------------------------------------------------
-  // Pawn Logic
-  // -------------------------------------------------------------------------
-  
   if (identity === "p") {
     const dir = turnColor === "w" ? -1 : 1;
     const startRow = turnColor === "w" ? 6 : 1;
 
-    // 1 step forward
     const forwardSq = coordsToSq(r + dir, c);
     if (forwardSq && !board[r + dir]?.[c]) {
       moves.push(forwardSq);
-      // 2 steps forward (only if 1 step was empty)
+
       if (r === startRow) {
         const doubleSq = coordsToSq(r + dir * 2, c);
         if (doubleSq && !board[r + dir * 2]?.[c]) {
@@ -84,7 +71,6 @@ export const getSpeculativeMoves = (
       }
     }
 
-    // Diagonal captures (speculative: always show them, since opponent might move there)
     const capLeft = coordsToSq(r + dir, c - 1);
     if (capLeft) moves.push(capLeft);
 
@@ -93,10 +79,6 @@ export const getSpeculativeMoves = (
 
     return moves;
   }
-
-  // -------------------------------------------------------------------------
-  // TPL Logic (Knights, Bishops, Rooks, Queens, Kings)
-  // -------------------------------------------------------------------------
 
   for (const [dr, dc] of tpl.deltas) {
     let nr = r + dr;
@@ -108,17 +90,14 @@ export const getSpeculativeMoves = (
         nc += dc;
       }
     } else {
-      addIfValid(nr, nc); // Leapers just jump once
+      addIfValid(nr, nc);
     }
   }
 
-  // Castling
   if (identity === "k") {
-    // For speculative premoves, we just allow kings to jump 2 squares sideways.
-    // If it's totally illegal when it comes to execute it, chess.js will reject it.
     const left2 = coordsToSq(r, c - 2);
     if (left2) moves.push(left2);
-    
+
     const right2 = coordsToSq(r, c + 2);
     if (right2) moves.push(right2);
   }

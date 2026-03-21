@@ -1,7 +1,7 @@
 {
   "name": "chess-tui",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "workspaces": [
     "packages/*"
@@ -11,6 +11,7 @@
     "build:ext": "npm run build --workspace @chess-tui/ext",
     "dev:ext": "npm run dev --workspace @chess-tui/ext",
     "dev:tui": "npm run dev --workspace chess-tui",
+    "format": "prettier --write .",
     "start:tui": "npm run start --workspace chess-tui",
     "tsc:ext": "npm run typecheck --workspace @chess-tui/ext",
     "tsc:tui": "npm run typecheck --workspace chess-tui",
@@ -24,6 +25,7 @@
     "@types/node": "^22.13.11",
     "@types/ws": "^8.18.1",
     "esbuild": "^0.25.0",
+    "prettier": "^3.8.1",
     "tsx": "^4.20.5",
     "typescript": "^5.8.2",
     "ws": "^8.18.1"

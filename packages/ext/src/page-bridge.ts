@@ -1,3 +1,6 @@
+// Copyright 2026 a7mddra
+// SPDX-License-Identifier: MIT
+
 const CONTENT_SOURCE = "chess-tui-content";
 const PAGE_SOURCE = "chess-tui-page";
 const UCI_MOVE_REGEX = /^[a-h][1-8][a-h][1-8][qrbn]?$/i;
@@ -60,15 +63,17 @@ function postToContent(payload: UnknownRecord): void {
     {
       source: PAGE_SOURCE,
       target: CONTENT_SOURCE,
-      ...payload
+      ...payload,
     },
-    "*"
+    "*",
   );
 }
 
 function getGame(): ChessGame | null {
   for (const selector of BOARD_SELECTORS) {
-    const board = document.querySelector(selector) as (Element & { game?: ChessGame }) | null;
+    const board = document.querySelector(selector) as
+      | (Element & { game?: ChessGame })
+      | null;
     if (!board?.game) {
       continue;
     }
@@ -113,7 +118,9 @@ function normalizePromotion(value: unknown): string | null {
   return promotion;
 }
 
-function parseUci(uci: string): { from: string; to: string; promotion?: string } | null {
+function parseUci(
+  uci: string,
+): { from: string; to: string; promotion?: string } | null {
   if (!UCI_MOVE_REGEX.test(uci)) {
     return null;
   }
@@ -126,7 +133,7 @@ function parseUci(uci: string): { from: string; to: string; promotion?: string }
   return {
     from,
     to,
-    promotion
+    promotion,
   };
 }
 
@@ -158,7 +165,11 @@ function findLegalMove(game: ChessGame, uci: string): UnknownRecord | null {
     }
 
     const candidatePromotion = normalizePromotion(move.promotion);
-    if (parsed.promotion && candidatePromotion && candidatePromotion !== parsed.promotion) {
+    if (
+      parsed.promotion &&
+      candidatePromotion &&
+      candidatePromotion !== parsed.promotion
+    ) {
       continue;
     }
 
@@ -202,7 +213,10 @@ function parseClockToMs(clockText: string | null): number | null {
     const hours = numericParts[0] ?? 0;
     const minutes = numericParts[1] ?? 0;
     const seconds = numericParts[2] ?? 0;
-    return Math.max(0, Math.round(hours * 3_600_000 + minutes * 60_000 + seconds * 1_000));
+    return Math.max(
+      0,
+      Math.round(hours * 3_600_000 + minutes * 60_000 + seconds * 1_000),
+    );
   }
 
   const maybeSeconds = Number.parseFloat(text);
@@ -216,7 +230,9 @@ function parseClockToMs(clockText: string | null): number | null {
 let cachedViewerUsername: string | null = null;
 
 function readViewerUsernameFromProfileLink(): string | null {
-  const profileLink = document.querySelector('a[href*="/member/"][data-user-activity-key="profile"], a.sidebar-link[href*="/member/"]');
+  const profileLink = document.querySelector(
+    'a[href*="/member/"][data-user-activity-key="profile"], a.sidebar-link[href*="/member/"]',
+  );
   if (!profileLink) {
     return null;
   }
@@ -281,7 +297,9 @@ function extractCountryFromElement(playerRoot: Element): string | null {
 }
 
 function extractEloFromElement(playerRoot: Element): number | null {
-  const ratingEl = playerRoot.querySelector('[class*="rating"], [data-cy*="rating"], [data-test-element*="rating"]');
+  const ratingEl = playerRoot.querySelector(
+    '[class*="rating"], [data-cy*="rating"], [data-test-element*="rating"]',
+  );
   const ratingText = ratingEl?.textContent?.trim() ?? "";
 
   const textCandidates = [ratingText, playerRoot.textContent ?? ""];
@@ -307,7 +325,9 @@ function extractClockState(playerRoot: Element): {
 } {
   const clockRoot = playerRoot.querySelector(".clock-component");
   const clockText = normalizeName(
-    clockRoot?.querySelector(".clock-time-monospace")?.textContent?.replace(/\s+/g, " ") ?? null
+    clockRoot
+      ?.querySelector(".clock-time-monospace")
+      ?.textContent?.replace(/\s+/g, " ") ?? null,
   );
 
   return {
@@ -319,7 +339,7 @@ function extractClockState(playerRoot: Element): {
 
 function mergePlayerMetaFromCandidate(
   value: unknown,
-  map: Map<string, { elo: number | null; nationality: string | null }>
+  map: Map<string, { elo: number | null; nationality: string | null }>,
 ): void {
   if (!Array.isArray(value)) {
     return;
@@ -331,7 +351,8 @@ function mergePlayerMetaFromCandidate(
       continue;
     }
 
-    const usernameValue = data.username ?? data.userName ?? data.name ?? data.handle;
+    const usernameValue =
+      data.username ?? data.userName ?? data.name ?? data.handle;
     if (typeof usernameValue !== "string") {
       continue;
     }
@@ -343,23 +364,35 @@ function mergePlayerMetaFromCandidate(
 
     const country = asRecord(data.country);
     const countryCode =
-      (typeof country?.code === "string" && country.code.trim().toUpperCase()) ||
+      (typeof country?.code === "string" &&
+        country.code.trim().toUpperCase()) ||
       (typeof country?.name === "string" && country.name.trim()) ||
-      (typeof data.countryCode === "string" && data.countryCode.trim().toUpperCase()) ||
+      (typeof data.countryCode === "string" &&
+        data.countryCode.trim().toUpperCase()) ||
       null;
 
-    const ratingValue = data.rating ?? data.elo ?? data.liveRating ?? data.rapidRating;
-    const elo = typeof ratingValue === "number" && Number.isFinite(ratingValue) ? Math.round(ratingValue) : null;
+    const ratingValue =
+      data.rating ?? data.elo ?? data.liveRating ?? data.rapidRating;
+    const elo =
+      typeof ratingValue === "number" && Number.isFinite(ratingValue)
+        ? Math.round(ratingValue)
+        : null;
 
     map.set(username, {
       elo,
-      nationality: countryCode
+      nationality: countryCode,
     });
   }
 }
 
-function buildPlayerMetaMap(): Map<string, { elo: number | null; nationality: string | null }> {
-  const map = new Map<string, { elo: number | null; nationality: string | null }>();
+function buildPlayerMetaMap(): Map<
+  string,
+  { elo: number | null; nationality: string | null }
+> {
+  const map = new Map<
+    string,
+    { elo: number | null; nationality: string | null }
+  >();
 
   const game = getGame();
   if (game) {
@@ -371,9 +404,7 @@ function buildPlayerMetaMap(): Map<string, { elo: number | null; nationality: st
     if (typeof game.getPlayers === "function") {
       try {
         mergePlayerMetaFromCandidate(game.getPlayers(), map);
-      } catch {
-        // Ignore if shape changes.
-      }
+      } catch {}
     }
   }
 
@@ -385,17 +416,19 @@ function buildPlayerMetaMap(): Map<string, { elo: number | null; nationality: st
     if (username.length) {
       const country = asRecord(contextData.country);
       const nationality =
-        (typeof country?.code === "string" && country.code.trim().toUpperCase()) ||
+        (typeof country?.code === "string" &&
+          country.code.trim().toUpperCase()) ||
         (typeof country?.name === "string" && country.name.trim()) ||
         null;
       const rating =
-        typeof contextData.rating === "number" && Number.isFinite(contextData.rating)
+        typeof contextData.rating === "number" &&
+        Number.isFinite(contextData.rating)
           ? Math.round(contextData.rating)
           : null;
 
       map.set(username, {
         elo: rating,
-        nationality
+        nationality,
       });
     }
   }
@@ -405,7 +438,7 @@ function buildPlayerMetaMap(): Map<string, { elo: number | null; nationality: st
 
 function readPlayerSnapshot(
   placement: PlayerPlacement,
-  metaMap: Map<string, { elo: number | null; nationality: string | null }>
+  metaMap: Map<string, { elo: number | null; nationality: string | null }>,
 ): PlayerClockSnapshot | null {
   const rootId = placement === "top" ? TOP_PLAYER_ID : BOTTOM_PLAYER_ID;
   const root = document.getElementById(rootId);
@@ -414,13 +447,15 @@ function readPlayerSnapshot(
   }
 
   const username = normalizeName(
-    root.querySelector('[data-test-element="user-tagline-username"]')?.textContent ?? null
+    root.querySelector('[data-test-element="user-tagline-username"]')
+      ?.textContent ?? null,
   );
 
   const key = username?.toLowerCase() ?? "";
   const meta = key.length ? metaMap.get(key) : undefined;
 
-  const nationality = extractCountryFromElement(root) ?? meta?.nationality ?? null;
+  const nationality =
+    extractCountryFromElement(root) ?? meta?.nationality ?? null;
   const elo = extractEloFromElement(root) ?? meta?.elo ?? null;
   const clockState = extractClockState(root);
 
@@ -438,10 +473,10 @@ function readPlayerSnapshot(
 let cachedBoardElement: Element | null = null;
 function readBoardOrientation(): "w" | "b" | undefined {
   if (!cachedBoardElement || !cachedBoardElement.isConnected) {
-    cachedBoardElement = document.querySelector('wc-chess-board, chess-board');
+    cachedBoardElement = document.querySelector("wc-chess-board, chess-board");
   }
   if (!cachedBoardElement) return undefined;
-  return cachedBoardElement.classList.contains('flipped') ? "b" : "w";
+  return cachedBoardElement.classList.contains("flipped") ? "b" : "w";
 }
 
 function readGameClockSnapshot(fen: string | null): GameClockSnapshot | null {
@@ -461,7 +496,10 @@ function readGameClockSnapshot(fen: string | null): GameClockSnapshot | null {
   if (currentUsername && top.username?.toLowerCase() === currentUsername) {
     userSnapshot = top;
     opponentSnapshot = bottom;
-  } else if (currentUsername && bottom.username?.toLowerCase() === currentUsername) {
+  } else if (
+    currentUsername &&
+    bottom.username?.toLowerCase() === currentUsername
+  ) {
     userSnapshot = bottom;
     opponentSnapshot = top;
   }
@@ -480,7 +518,7 @@ function applyMove(uci: string): { ok: boolean; fen?: string; error?: string } {
   if (!game || typeof game.move !== "function") {
     return {
       ok: false,
-      error: "Board API not available yet."
+      error: "Board API not available yet.",
     };
   }
 
@@ -488,7 +526,7 @@ function applyMove(uci: string): { ok: boolean; fen?: string; error?: string } {
   if (!parsed) {
     return {
       ok: false,
-      error: `Invalid UCI move: ${uci}`
+      error: `Invalid UCI move: ${uci}`,
     };
   }
 
@@ -496,14 +534,14 @@ function applyMove(uci: string): { ok: boolean; fen?: string; error?: string } {
   if (!legalMove) {
     return {
       ok: false,
-      error: `Illegal move for current position: ${uci}`
+      error: `Illegal move for current position: ${uci}`,
     };
   }
 
   const movePayload: UnknownRecord = {
     ...legalMove,
     animate: false,
-    userGenerated: true
+    userGenerated: true,
   };
 
   if (parsed.promotion) {
@@ -516,9 +554,13 @@ function applyMove(uci: string): { ok: boolean; fen?: string; error?: string } {
     if (parsed.promotion) {
       setTimeout(() => {
         const pieceSelector = `.promotion-piece.w${parsed.promotion}, .promotion-piece.b${parsed.promotion}`;
-        const promotionElement = document.querySelector(pieceSelector) as HTMLElement;
+        const promotionElement = document.querySelector(
+          pieceSelector,
+        ) as HTMLElement;
         if (promotionElement) {
-          promotionElement.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+          promotionElement.dispatchEvent(
+            new MouseEvent("mousedown", { bubbles: true }),
+          );
           promotionElement.click();
         }
       }, 50);
@@ -526,13 +568,13 @@ function applyMove(uci: string): { ok: boolean; fen?: string; error?: string } {
   } catch (error) {
     return {
       ok: false,
-      error: error instanceof Error ? error.message : "Unknown move error."
+      error: error instanceof Error ? error.message : "Unknown move error.",
     };
   }
 
   return {
     ok: true,
-    fen: readFen() ?? undefined
+    fen: readFen() ?? undefined,
   };
 }
 
@@ -540,23 +582,35 @@ function applyInteraction(command: string): { ok: boolean; error?: string } {
   let selector: string | null = null;
   switch (command) {
     case "new": {
-      const isRunning = !document.querySelector('.game-over-message-component');
+      const isRunning = !document.querySelector(".game-over-message-component");
       if (isRunning) {
         ignoreGameOverUntil = Date.now() + 1000;
-        const resignBtn = document.querySelector('[data-cy="resign-button"], .resign-button-component') as HTMLElement | null;
+        const resignBtn = document.querySelector(
+          '[data-cy="resign-button"], .resign-button-component',
+        ) as HTMLElement | null;
         if (resignBtn) {
-          resignBtn.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+          resignBtn.dispatchEvent(
+            new MouseEvent("mousedown", { bubbles: true }),
+          );
           resignBtn.click();
           setTimeout(() => {
-            const confirmYes = resignBtn.querySelector('[data-cy="confirm-yes"]') as HTMLElement | null;
+            const confirmYes = resignBtn.querySelector(
+              '[data-cy="confirm-yes"]',
+            ) as HTMLElement | null;
             if (confirmYes) {
-              confirmYes.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+              confirmYes.dispatchEvent(
+                new MouseEvent("mousedown", { bubbles: true }),
+              );
               confirmYes.click();
             }
             setTimeout(() => {
-              const newBtn = document.querySelector('[data-cy="game-over-modal-new-game-button"]') as HTMLElement | null;
+              const newBtn = document.querySelector(
+                '[data-cy="game-over-modal-new-game-button"]',
+              ) as HTMLElement | null;
               if (newBtn) {
-                newBtn.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+                newBtn.dispatchEvent(
+                  new MouseEvent("mousedown", { bubbles: true }),
+                );
                 newBtn.click();
               }
             }, 600);
@@ -567,11 +621,20 @@ function applyInteraction(command: string): { ok: boolean; error?: string } {
       selector = '[data-cy="game-over-modal-new-game-button"]';
       break;
     }
-    case "resign": selector = '[data-cy="resign-button"], .resign-button-component'; break;
-    case "draw": selector = '[data-cy="draw-offer-button"], .draw-button-component'; break;
-    case "accept": selector = '[data-cy="draw-offer-accept"]'; break;
-    case "decline": selector = '[data-cy="draw-offer-decline"]'; break;
-    default: return { ok: false, error: `Unknown interaction: ${command}` };
+    case "resign":
+      selector = '[data-cy="resign-button"], .resign-button-component';
+      break;
+    case "draw":
+      selector = '[data-cy="draw-offer-button"], .draw-button-component';
+      break;
+    case "accept":
+      selector = '[data-cy="draw-offer-accept"]';
+      break;
+    case "decline":
+      selector = '[data-cy="draw-offer-decline"]';
+      break;
+    default:
+      return { ok: false, error: `Unknown interaction: ${command}` };
   }
 
   const el = document.querySelector(selector) as HTMLElement | null;
@@ -584,16 +647,23 @@ function applyInteraction(command: string): { ok: boolean; error?: string } {
     el.click();
 
     setTimeout(() => {
-      const confirmYes = el.querySelector('[data-cy="confirm-yes"]') as HTMLElement | null;
+      const confirmYes = el.querySelector(
+        '[data-cy="confirm-yes"]',
+      ) as HTMLElement | null;
       if (confirmYes) {
-        confirmYes.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+        confirmYes.dispatchEvent(
+          new MouseEvent("mousedown", { bubbles: true }),
+        );
         confirmYes.click();
       }
     }, 50);
 
     return { ok: true };
   } catch (error) {
-    return { ok: false, error: error instanceof Error ? error.message : "Interaction error." };
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Interaction error.",
+    };
   }
 }
 
@@ -615,7 +685,7 @@ function buildSnapshotSignal(snapshot: GameClockSnapshot | null): string {
     snapshot.opponent.username ?? "",
     snapshot.opponent.placement,
     snapshot.opponent.isTurn ? "1" : "0",
-    snapshot.boardOrientation ?? ""
+    snapshot.boardOrientation ?? "",
   ].join("|");
 }
 
@@ -640,7 +710,7 @@ function emitFenIfChanged(force = false): void {
   postToContent({
     type: "FEN_UPDATE",
     fen,
-    snapshot: snapshot ?? undefined
+    snapshot: snapshot ?? undefined,
   });
 }
 
@@ -649,9 +719,9 @@ function checkGameEvents(): void {
     return;
   }
 
-  const gameOverEl = document.querySelector('.game-over-message-component');
+  const gameOverEl = document.querySelector(".game-over-message-component");
   if (gameOverEl && gameOverEl.textContent) {
-    const text = gameOverEl.textContent.replace(/\s+/g, ' ').trim();
+    const text = gameOverEl.textContent.replace(/\s+/g, " ").trim();
     if (text !== lastGameOverText) {
       lastGameOverText = text;
       postToContent({ type: "GAME_OVER", resultMessage: text });
@@ -664,7 +734,9 @@ function checkGameEvents(): void {
   }
 
   const drawOfferEl = document.querySelector('[data-cy="draw-offer-accept"]');
-  const isDrawOffered = !!(drawOfferEl && (drawOfferEl as HTMLElement).offsetParent !== null);
+  const isDrawOffered = !!(
+    drawOfferEl && (drawOfferEl as HTMLElement).offsetParent !== null
+  );
   if (isDrawOffered && !lastDrawOffered) {
     postToContent({ type: "DRAW_OFFERED" });
   } else if (!isDrawOffered && lastDrawOffered) {
@@ -674,7 +746,11 @@ function checkGameEvents(): void {
 }
 
 window.addEventListener("message", (event) => {
-  if (event.source !== window || typeof event.data !== "object" || event.data === null) {
+  if (
+    event.source !== window ||
+    typeof event.data !== "object" ||
+    event.data === null
+  ) {
     return;
   }
 
@@ -698,14 +774,17 @@ window.addEventListener("message", (event) => {
       ok: result.ok,
       fen: result.fen,
       error: result.error,
-      snapshot: snapshot ?? undefined
+      snapshot: snapshot ?? undefined,
     });
 
     if (result.ok) {
       emitFenIfChanged(true);
     }
   } else if (data.type === "APPLY_INTERACTION") {
-    if (typeof data.requestId !== "string" || typeof data.command !== "string") {
+    if (
+      typeof data.requestId !== "string" ||
+      typeof data.command !== "string"
+    ) {
       return;
     }
 
@@ -714,7 +793,7 @@ window.addEventListener("message", (event) => {
       type: "INTERACTION_RESULT",
       requestId: data.requestId,
       ok: result.ok,
-      error: result.error
+      error: result.error,
     });
   }
 });
@@ -730,7 +809,7 @@ const initialSnapshot = readGameClockSnapshot(initialFen);
 postToContent({
   type: "BRIDGE_READY",
   fen: initialFen ?? undefined,
-  snapshot: initialSnapshot ?? undefined
+  snapshot: initialSnapshot ?? undefined,
 });
 
 emitFenIfChanged(true);

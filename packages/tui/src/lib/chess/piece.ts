@@ -1,3 +1,6 @@
+// Copyright 2026 a7mddra
+// SPDX-License-Identifier: MIT
+
 export type PieceKind = "p" | "n" | "b" | "r" | "q" | "k";
 export type PieceColor = "w" | "b";
 export type PieceCode = PieceKind | Uppercase<PieceKind>;
@@ -24,29 +27,51 @@ export const PIECE_TPLS: Record<PieceKind, PieceTemplate> = {
     isSliding: false,
     power: 3,
     deltas: [
-      [1, 2], [2, 1], [-1, 2], [-2, 1],
-      [1, -2], [2, -1], [-1, -2], [-2, -1],
+      [1, 2],
+      [2, 1],
+      [-1, 2],
+      [-2, 1],
+      [1, -2],
+      [2, -1],
+      [-1, -2],
+      [-2, -1],
     ],
     glyph: { w: "♘", b: "♞" },
   },
   b: {
     isSliding: true,
     power: 3,
-    deltas: [[1, 1], [1, -1], [-1, 1], [-1, -1]],
+    deltas: [
+      [1, 1],
+      [1, -1],
+      [-1, 1],
+      [-1, -1],
+    ],
     glyph: { w: "♗", b: "♝" },
   },
   r: {
     isSliding: true,
     power: 5,
-    deltas: [[1, 0], [-1, 0], [0, 1], [0, -1]],
+    deltas: [
+      [1, 0],
+      [-1, 0],
+      [0, 1],
+      [0, -1],
+    ],
     glyph: { w: "♖", b: "♜" },
   },
   q: {
     isSliding: true,
     power: 9,
     deltas: [
-      [1, 0], [-1, 0], [0, 1], [0, -1],
-      [1, 1], [1, -1], [-1, 1], [-1, -1],
+      [1, 0],
+      [-1, 0],
+      [0, 1],
+      [0, -1],
+      [1, 1],
+      [1, -1],
+      [-1, 1],
+      [-1, -1],
     ],
     glyph: { w: "♕", b: "♛" },
   },
@@ -54,8 +79,14 @@ export const PIECE_TPLS: Record<PieceKind, PieceTemplate> = {
     isSliding: false,
     power: Number.POSITIVE_INFINITY,
     deltas: [
-      [1, 0], [-1, 0], [0, 1], [0, -1],
-      [1, 1], [1, -1], [-1, 1], [-1, -1],
+      [1, 0],
+      [-1, 0],
+      [0, 1],
+      [0, -1],
+      [1, 1],
+      [1, -1],
+      [-1, 1],
+      [-1, -1],
     ],
     glyph: { w: "♔", b: "♚" },
   },
@@ -70,7 +101,12 @@ export const PIECE_TPLS: Record<PieceKind, PieceTemplate> = {
 const KINDS: PieceKind[] = ["p", "n", "b", "r", "q", "k"];
 
 export const isPieceKind = (value: string): value is PieceKind =>
-  value === "p" || value === "n" || value === "b" || value === "r" || value === "q" || value === "k";
+  value === "p" ||
+  value === "n" ||
+  value === "b" ||
+  value === "r" ||
+  value === "q" ||
+  value === "k";
 
 const byCode = {} as Record<PieceCode, PieceDefinition>;
 for (const kind of KINDS) {
@@ -98,7 +134,8 @@ for (const kind of KINDS) {
   };
 }
 
-export const PIECES_BY_CODE: Record<PieceCode, PieceDefinition> = Object.freeze(byCode);
+export const PIECES_BY_CODE: Record<PieceCode, PieceDefinition> =
+  Object.freeze(byCode);
 
 export const PIECE_POWER = Object.freeze({
   p: PIECE_TPLS.p.power,

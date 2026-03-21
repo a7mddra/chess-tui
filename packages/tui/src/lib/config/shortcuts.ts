@@ -1,9 +1,10 @@
+// Copyright 2026 a7mddra
+// SPDX-License-Identifier: MIT
+
 const IS_MAC = process.platform === "darwin";
 
 export type Shortcut = {
-  /** Human-readable label (e.g. "Detach board") */
   label: string;
-  /** Display string for the key combo (e.g. "⌘D" on Mac, "Ctrl+D" on Linux) */
   keys: string;
 };
 

@@ -1,3 +1,6 @@
+// Copyright 2026 a7mddra
+// SPDX-License-Identifier: MIT
+
 import {
   isContentToBackgroundMessage,
   parseWsInbound,
@@ -5,12 +8,12 @@ import {
   type ApplyInteractionCommand,
   type ApplyMoveResponse,
   type ApplyInteractionResponse,
-  type WsOutboundMessage
+  type WsOutboundMessage,
 } from "./protocol";
 
 const WS_URL_CANDIDATES = [
   "ws://127.0.0.1:8765",
-  "ws://localhost:8765"
+  "ws://localhost:8765",
 ] as const;
 const CHESS_URL_MATCH = ["*://*.chess.com/*"];
 const RECONNECT_DELAYS_MS = [500, 1000, 2000, 5000, 10000] as const;
@@ -29,7 +32,11 @@ function sendToSocket(message: WsOutboundMessage): void {
 }
 
 function connectSocket(): void {
-  if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
+  if (
+    socket &&
+    (socket.readyState === WebSocket.OPEN ||
+      socket.readyState === WebSocket.CONNECTING)
+  ) {
     return;
   }
 
@@ -41,7 +48,7 @@ function connectSocket(): void {
     sendToSocket({
       type: "status",
       status: "connected",
-      detail: `Extension bridge connected (${wsUrl}).`
+      detail: `Extension bridge connected (${wsUrl}).`,
     });
 
     const targetTabId = await resolveTargetTab();
@@ -50,15 +57,18 @@ function connectSocket(): void {
         if (tab.url) {
           sendToSocket({
             type: "game-url",
-            url: tab.url
+            url: tab.url,
           });
         }
       });
       chrome.scripting.executeScript({
         target: { tabId: targetTabId },
         func: () => {
-          window.postMessage({ type: "SYNC_REQUEST", source: "chess-tui-content" }, "*");
-        }
+          window.postMessage(
+            { type: "SYNC_REQUEST", source: "chess-tui-content" },
+            "*",
+          );
+        },
       });
     }
   });
@@ -72,7 +82,6 @@ function connectSocket(): void {
   });
 
   socket.addEventListener("error", () => {
-    // The browser keeps error details opaque for WS. Close proactively to trigger retries.
     if (socket && socket.readyState !== WebSocket.CLOSED) {
       socket.close();
     }
@@ -103,7 +112,7 @@ async function handleSocketPayload(payload: string): Promise<void> {
   } catch {
     sendToSocket({
       type: "error",
-      error: "Invalid JSON payload."
+      error: "Invalid JSON payload.",
     });
     return;
   }
@@ -112,7 +121,8 @@ async function handleSocketPayload(payload: string): Promise<void> {
   if (!message) {
     sendToSocket({
       type: "error",
-      error: "Unsupported message. Use {type:\"move\", uci:\"e2e4\"} or {type:\"ping\"}."
+      error:
+        'Unsupported message. Use {type:"move", uci:"e2e4"} or {type:"ping"}.',
     });
     return;
   }
@@ -121,7 +131,7 @@ async function handleSocketPayload(payload: string): Promise<void> {
     sendToSocket({
       type: "pong",
       requestId: message.requestId,
-      ts: Date.now()
+      ts: Date.now(),
     });
     return;
   }
@@ -133,13 +143,13 @@ async function handleSocketPayload(payload: string): Promise<void> {
     result = await applyActionToBestTab({
       type: "APPLY_MOVE",
       uci: message.uci,
-      requestId
+      requestId,
     });
   } else if (message.type === "interaction") {
     result = await applyActionToBestTab({
       type: "APPLY_INTERACTION",
       command: message.command,
-      requestId
+      requestId,
     });
   } else {
     return;
@@ -150,19 +160,19 @@ async function handleSocketPayload(payload: string): Promise<void> {
     requestId,
     ok: result.ok,
     fen: (result as ApplyMoveResponse).fen,
-    error: result.error
+    error: result.error,
   });
 }
 
 async function applyActionToBestTab(
-  command: ApplyMoveCommand | ApplyInteractionCommand
+  command: ApplyMoveCommand | ApplyInteractionCommand,
 ): Promise<ApplyMoveResponse | ApplyInteractionResponse> {
   const tabId = await resolveTargetTab();
   if (tabId === null) {
     return {
       ok: false,
       error:
-        "No chess.com tab receiver is ready. Reload your chess.com game tab after enabling the extension."
+        "No chess.com tab receiver is ready. Reload your chess.com game tab after enabling the extension.",
     };
   }
 
@@ -184,7 +194,7 @@ async function resolveTargetTab(): Promise<number | null> {
       .map((tab) => tab.id as number),
     ...tabs
       .filter((tab) => typeof tab.id === "number")
-      .map((tab) => tab.id as number)
+      .map((tab) => tab.id as number),
   ];
 
   const dedupedCandidates = [...new Set(candidates)];
@@ -204,7 +214,7 @@ function checkContentReceiver(tabId: number): Promise<boolean> {
     chrome.tabs.sendMessage(
       tabId,
       {
-        type: "HEALTHCHECK"
+        type: "HEALTHCHECK",
       },
       (response?: { ok?: boolean }) => {
         const runtimeError = chrome.runtime.lastError;
@@ -214,37 +224,46 @@ function checkContentReceiver(tabId: number): Promise<boolean> {
         }
 
         resolve(response?.ok === true);
-      }
+      },
     );
   });
 }
 
-function sendActionToTab(tabId: number, message: ApplyMoveCommand | ApplyInteractionCommand): Promise<ApplyMoveResponse | ApplyInteractionResponse> {
+function sendActionToTab(
+  tabId: number,
+  message: ApplyMoveCommand | ApplyInteractionCommand,
+): Promise<ApplyMoveResponse | ApplyInteractionResponse> {
   return new Promise((resolve) => {
-    chrome.tabs.sendMessage(tabId, message, (response?: ApplyMoveResponse | ApplyInteractionResponse) => {
-      const runtimeError = chrome.runtime.lastError;
-      if (runtimeError) {
-        readyTabIds.delete(tabId);
-        const isNoReceiver = runtimeError.message?.includes("Receiving end does not exist");
-        resolve({
-          ok: false,
-          error: isNoReceiver
-            ? "Tab receiver unavailable. Refresh the chess.com tab and retry."
-            : runtimeError.message
-        });
-        return;
-      }
+    chrome.tabs.sendMessage(
+      tabId,
+      message,
+      (response?: ApplyMoveResponse | ApplyInteractionResponse) => {
+        const runtimeError = chrome.runtime.lastError;
+        if (runtimeError) {
+          readyTabIds.delete(tabId);
+          const isNoReceiver = runtimeError.message?.includes(
+            "Receiving end does not exist",
+          );
+          resolve({
+            ok: false,
+            error: isNoReceiver
+              ? "Tab receiver unavailable. Refresh the chess.com tab and retry."
+              : runtimeError.message,
+          });
+          return;
+        }
 
-      if (!response || typeof response.ok !== "boolean") {
-        resolve({
-          ok: false,
-          error: "No response from content bridge."
-        });
-        return;
-      }
+        if (!response || typeof response.ok !== "boolean") {
+          resolve({
+            ok: false,
+            error: "No response from content bridge.",
+          });
+          return;
+        }
 
-      resolve(response);
-    });
+        resolve(response);
+      },
+    );
   });
 }
 
@@ -261,20 +280,20 @@ chrome.runtime.onMessage.addListener((message: unknown, sender) => {
 
     sendToSocket({
       type: "game-url",
-      url: message.href
+      url: message.href,
     });
 
     if (message.fen) {
       sendToSocket({
         type: "fen",
-        fen: message.fen
+        fen: message.fen,
       });
     }
 
     if (message.snapshot) {
       sendToSocket({
         type: "game-state",
-        snapshot: message.snapshot
+        snapshot: message.snapshot,
       });
     }
 
@@ -284,13 +303,13 @@ chrome.runtime.onMessage.addListener((message: unknown, sender) => {
   if (message.type === "FEN_UPDATE") {
     sendToSocket({
       type: "fen",
-      fen: message.fen
+      fen: message.fen,
     });
 
     if (message.snapshot) {
       sendToSocket({
         type: "game-state",
-        snapshot: message.snapshot
+        snapshot: message.snapshot,
       });
     }
     return;
@@ -299,14 +318,14 @@ chrome.runtime.onMessage.addListener((message: unknown, sender) => {
   if (message.type === "GAME_OVER") {
     sendToSocket({
       type: "game-over",
-      resultMessage: message.resultMessage
+      resultMessage: message.resultMessage,
     });
     return;
   }
 
   if (message.type === "DRAW_OFFERED") {
     sendToSocket({
-      type: "draw-offered"
+      type: "draw-offered",
     });
     return;
   }

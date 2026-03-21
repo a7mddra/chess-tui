@@ -1,11 +1,10 @@
+// Copyright 2026 a7mddra
+// SPDX-License-Identifier: MIT
+
 export type Command = {
-  /** Internal ID used by backend logic (e.g. "new", "accept") */
   id: string;
-  /** Display label shown in the command list (e.g. "Start new game") */
   label: string;
-  /** Extra keywords for search that aren't in the label */
   keywords?: string[];
-  /** Where this command is available */
   mode?: "all" | "online" | "offline";
 };
 
@@ -26,7 +25,12 @@ export const COMMANDS: Command[] = [
     keywords: ["difficulty", "level"],
     mode: "offline",
   },
-  { id: "theme", label: "Change Theme", keywords: ["board", "palette", "skin"], mode: "all" },
+  {
+    id: "theme",
+    label: "Change Theme",
+    keywords: ["board", "palette", "skin"],
+    mode: "all",
+  },
   { id: "exit", label: "Exit program", keywords: ["quit"], mode: "all" },
 ];
 

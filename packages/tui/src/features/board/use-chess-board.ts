@@ -1,24 +1,23 @@
-import { useState, useCallback, useMemo } from 'react';
-import { Chess, Square } from 'chess.js';
-import { getSpeculativeMoves, sqToCoords } from './generation';
+// Copyright 2026 a7mddra
+// SPDX-License-Identifier: MIT
+
+import { useState, useCallback, useMemo } from "react";
+import { Chess, Square } from "chess.js";
+import { getSpeculativeMoves, sqToCoords } from "./generation";
 import {
   type BoardCell,
   type PremoveEntry,
   type UndoSnapshot,
   type UseChessBoardOptions,
-} from '@/lib/chess/types';
-import { parseCoordinate, tryMove, tryMoveSwapped } from './move-utils';
-export type { BoardCell, ChessBoardState } from '@/lib/chess/types';
-export { useBoardIpcServer, useBoardIpcClient} from "./board-ipc";
-
-// ---------------------------------------------------------------------------
-// Hook
-// ---------------------------------------------------------------------------
+} from "@/lib/chess/types";
+import { parseCoordinate, tryMove, tryMoveSwapped } from "./move-utils";
+export type { BoardCell, ChessBoardState } from "@/lib/chess/types";
+export { useBoardIpcServer, useBoardIpcClient } from "./board-ipc";
 
 export const useChessBoard = (
-  initialFen: string = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+  initialFen: string = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
   onMoveDispatch?: (uci: string) => void,
-  options: UseChessBoardOptions = {}
+  options: UseChessBoardOptions = {},
 ) => {
   const selfPlay = options.selfPlay ?? false;
   const playerColor = options.playerColor;
@@ -39,18 +38,6 @@ export const useChessBoard = (
     ]);
   }, [chess, premoves, selectedSquare]);
 
-  // -------------------------------------------------------------------------
-  // Projected board: replays premoves on top of real board (display only)
-  //
-  // For a self-play scenario (user controls both colours) each premove
-  // alternates turns.  If a premove doesn't match the current turn we swap
-  // the turn before applying it.  If a premove is outright illegal even after
-  // swapping, we stop replaying (invalid chain).
-  // -------------------------------------------------------------------------
-
-  // Speculative projected board: apply queued premoves by piece power only.
-  // This is intentionally not strict chess legality and is used for previewing
-  // premoves and chaining them while waiting for an opponent move.
   const projectedState = useMemo(() => {
     let projectedBoard = chess.board().map((row) => [...row]) as BoardCell[][];
 
@@ -61,11 +48,15 @@ export const useChessBoard = (
       const source = projectedBoard[fr]?.[fc];
       if (!source) break;
 
-      const speculative = getSpeculativeMoves(projectedBoard, pm.from, source.color);
+      const speculative = getSpeculativeMoves(
+        projectedBoard,
+        pm.from,
+        source.color,
+      );
       if (!speculative.includes(pm.to)) break;
 
       const next = projectedBoard.map((row) => [...row]) as BoardCell[][];
-      const isPromotionRow = source.type === 'p' && (tr === 0 || tr === 7);
+      const isPromotionRow = source.type === "p" && (tr === 0 || tr === 7);
 
       next[fr]![fc] = null;
       next[tr]![tc] = {
@@ -88,16 +79,17 @@ export const useChessBoard = (
   const fen = chess.fen();
 
   const history = chess.history({ verbose: true });
-  const lastRealMove = history.length > 0 ? {
-    from: history[history.length - 1]!.from,
-    to: history[history.length - 1]!.to,
-  } : null;
+  const lastRealMove =
+    history.length > 0
+      ? {
+          from: history[history.length - 1]!.from,
+          to: history[history.length - 1]!.to,
+        }
+      : null;
 
-  // Valid-move hints for the currently selected square (on the projected board)
   const validMoves = useMemo(() => {
     if (!selectedSquare) return [];
-    
-    // Check if the selected square actually belongs to the user on the projected board
+
     const [r, c] = sqToCoords(selectedSquare as Square);
     const cell = board[r]?.[c];
     if (!cell) return [];
@@ -120,7 +112,6 @@ export const useChessBoard = (
     return getSpeculativeMoves(board, selectedSquare as Square, cell.color);
   }, [board, selectedSquare, realTurn, chess, selfPlay, playerColor]);
 
-  // Squares that should be highlighted red (premove path)
   const premoveJumps = useMemo(() => {
     const jumps: string[] = [];
     for (const pm of premoves) {
@@ -129,15 +120,11 @@ export const useChessBoard = (
     return jumps;
   }, [premoves]);
 
-  // -------------------------------------------------------------------------
-  // Execute premoves after a real move has been made.
-  // In online mode we only fire one premove.
-  // In self-play mode we keep draining the queue to support deep chains.
-  // Returns { newChess, remaining }.
-  // -------------------------------------------------------------------------
-
   const flushPremoves = useCallback(
-    (realChess: Chess, queue: PremoveEntry[]): { newChess: Chess; remaining: PremoveEntry[] } => {
+    (
+      realChess: Chess,
+      queue: PremoveEntry[],
+    ): { newChess: Chess; remaining: PremoveEntry[] } => {
       if (queue.length === 0) return { newChess: realChess, remaining: [] };
 
       let c = new Chess(realChess.fen());
@@ -146,11 +133,8 @@ export const useChessBoard = (
       while (idx < queue.length) {
         const entry = queue[idx]!;
 
-        // Try the premove on the real board (current turn)
         let result = tryMove(c, entry);
 
-        // Self-play only: also allow forcing the side-to-move swap so queued
-        // same-colour chains can execute in dev mode.
         if (!result && selfPlay) {
           result = tryMoveSwapped(c, entry);
         }
@@ -173,16 +157,11 @@ export const useChessBoard = (
 
       return { newChess: c, remaining: [] };
     },
-    [onMoveDispatch, selfPlay]
+    [onMoveDispatch, selfPlay],
   );
-
-  // -------------------------------------------------------------------------
-  // Core: attempt a move (real or premove)
-  // -------------------------------------------------------------------------
 
   const attemptMove = useCallback(
     (entry: PremoveEntry) => {
-      // 1. Try on real board – it's the user's actual turn
       const realResult = tryMove(chess, entry);
       if (realResult) {
         pushUndoSnapshot();
@@ -190,7 +169,6 @@ export const useChessBoard = (
         const lastM = h[h.length - 1];
         if (lastM && onMoveDispatch) onMoveDispatch(lastM.lan ?? lastM.san);
 
-        // After a real move, try to auto-fire queued premoves
         const { newChess, remaining } = flushPremoves(realResult, premoves);
         setChess(newChess);
         setPremoves(remaining);
@@ -198,10 +176,9 @@ export const useChessBoard = (
         return true;
       }
 
-      // 2. It's not a real move – validate speculatively against projected board
       const [r, c] = sqToCoords(entry.from);
       const cell = board[r]?.[c];
-      
+
       if (cell) {
         const canControlColor = selfPlay
           ? true
@@ -217,10 +194,14 @@ export const useChessBoard = (
           return false;
         }
 
-        const speculativeValid = getSpeculativeMoves(board, entry.from, cell.color);
+        const speculativeValid = getSpeculativeMoves(
+          board,
+          entry.from,
+          cell.color,
+        );
         if (speculativeValid.includes(entry.to)) {
           pushUndoSnapshot();
-          setPremoves(prev => [...prev, entry]);
+          setPremoves((prev) => [...prev, entry]);
           setSelectedSquare(null);
           return true;
         }
@@ -228,18 +209,23 @@ export const useChessBoard = (
 
       return false;
     },
-    [chess, board, realTurn, premoves, flushPremoves, onMoveDispatch, pushUndoSnapshot, selfPlay, playerColor]
+    [
+      chess,
+      board,
+      realTurn,
+      premoves,
+      flushPremoves,
+      onMoveDispatch,
+      pushUndoSnapshot,
+      selfPlay,
+      playerColor,
+    ],
   );
-
-  // -------------------------------------------------------------------------
-  // Handle raw user input (could be "e2e4", "e4", "Nf3", etc.)
-  // -------------------------------------------------------------------------
 
   const handleUserInput = useCallback(
     (input: string) => {
       const normalized = input.trim();
 
-      // -- Square-click mode (two sequential single-square inputs combine) --
       if (/^[a-h][1-8][qrbn]?$/i.test(normalized)) {
         const sqMatch = /^([a-h][1-8])([qrbn])?$/i.exec(normalized);
         const sq = sqMatch![1]!.toLowerCase() as Square;
@@ -271,7 +257,6 @@ export const useChessBoard = (
           };
           const success = attemptMove(entry);
           if (!success) {
-            // Not a valid move from selectedSquare to sq – reselect only if controllable
             setSelectedSquare(canSelectSquare(sq) ? sq : null);
           }
         } else {
@@ -282,7 +267,6 @@ export const useChessBoard = (
         return;
       }
 
-      // -- Coordinate-pair input (e2e4, e7e8q, etc.) --
       const coord = parseCoordinate(normalized);
       if (coord) {
         if (attemptMove(coord)) return;
@@ -290,7 +274,6 @@ export const useChessBoard = (
         return;
       }
 
-      // -- SAN input (Nf3, O-O, etc.) – try on real board, then future --
       try {
         const clone = new Chess(chess.fen());
         const m = clone.move(normalized);
@@ -301,16 +284,26 @@ export const useChessBoard = (
         setPremoves(remaining);
         setSelectedSquare(null);
         return;
-      } catch { /* not valid SAN for real board */ }
+      } catch {
+        /* not valid SAN for real board */
+      }
 
       setSelectedSquare(null);
     },
-    [selectedSquare, attemptMove, chess, premoves, flushPremoves, onMoveDispatch, pushUndoSnapshot, board, selfPlay, playerColor, realTurn]
+    [
+      selectedSquare,
+      attemptMove,
+      chess,
+      premoves,
+      flushPremoves,
+      onMoveDispatch,
+      pushUndoSnapshot,
+      board,
+      selfPlay,
+      playerColor,
+      realTurn,
+    ],
   );
-
-  // -------------------------------------------------------------------------
-  // Apply an opponent's move (from server / engine)
-  // -------------------------------------------------------------------------
 
   const applyOpponentMove = useCallback(
     (moveStr: string) => {
@@ -319,27 +312,24 @@ export const useChessBoard = (
         const m = realC.move(moveStr);
         if (m && onMoveDispatch) onMoveDispatch(m.lan ?? m.san);
 
-        // Try to auto-fire queued premoves
         const { newChess, remaining } = flushPremoves(realC, premoves);
         setChess(newChess);
         setPremoves(remaining);
-      } catch { /* ignore invalid opponent move */ }
+      } catch {
+        /* ignore invalid opponent move */
+      }
     },
-    [chess, premoves, flushPremoves, onMoveDispatch]
+    [chess, premoves, flushPremoves, onMoveDispatch],
   );
-
-  // -------------------------------------------------------------------------
-  // Commands (new game, undo, etc.)
-  // -------------------------------------------------------------------------
 
   const executeCommand = useCallback(
     (cmdId: string) => {
-      if (cmdId === 'new') {
+      if (cmdId === "new") {
         setChess(new Chess(initialFen));
         setPremoves([]);
         setSelectedSquare(null);
         setUndoStack([]);
-      } else if (cmdId === 'undo') {
+      } else if (cmdId === "undo") {
         if (undoStack.length > 0) {
           const last = undoStack[undoStack.length - 1]!;
           setUndoStack((prev) => prev.slice(0, -1));
@@ -350,7 +340,6 @@ export const useChessBoard = (
           return;
         }
 
-        // Fallback for legacy states not captured in undo stack.
         if (premoves.length > 0) {
           setPremoves((prev) => prev.slice(0, -1));
           setSelectedSquare(null);
@@ -364,53 +353,50 @@ export const useChessBoard = (
           onUndoFenDispatch?.(c.fen());
         }
         setSelectedSquare(null);
-      } else if (cmdId === 'restore' || cmdId === 'kill') {
+      } else if (cmdId === "restore" || cmdId === "kill") {
         setPremoves([]);
         setSelectedSquare(null);
         setUndoStack([]);
       }
     },
-    [initialFen, chess, premoves, undoStack, onUndoFenDispatch]
+    [initialFen, chess, premoves, undoStack, onUndoFenDispatch],
   );
-
-  // -------------------------------------------------------------------------
-  // Load an arbitrary FEN (e.g. from the extension)
-  // -------------------------------------------------------------------------
 
   const loadFen = useCallback(
     (newFen: string) => {
       try {
-        const targetBase = newFen.split(' ').slice(0, 2).join(' ');
-        const currentBase = chess.fen().split(' ').slice(0, 2).join(' ');
+        const targetBase = newFen.split(" ").slice(0, 2).join(" ");
+        const currentBase = chess.fen().split(" ").slice(0, 2).join(" ");
 
         if (targetBase === currentBase) {
-           return;
+          return;
         }
 
         const possibleMoves = chess.moves({ verbose: true });
-        const detectedMove = possibleMoves.find(m => {
-           const clone = new Chess(chess.fen());
-           clone.move(m);
-           return clone.fen().split(' ').slice(0, 2).join(' ') === targetBase;
+        const detectedMove = possibleMoves.find((m) => {
+          const clone = new Chess(chess.fen());
+          clone.move(m);
+          return clone.fen().split(" ").slice(0, 2).join(" ") === targetBase;
         });
 
         let nextChess: Chess;
         if (detectedMove) {
-            const clone = new Chess(chess.fen());
-            clone.move(detectedMove);
-            nextChess = clone;
+          const clone = new Chess(chess.fen());
+          clone.move(detectedMove);
+          nextChess = clone;
         } else {
-            nextChess = new Chess(newFen);
+          nextChess = new Chess(newFen);
         }
 
         setChess(nextChess);
-        // Try to salvage one premove against new position
         const { remaining } = flushPremoves(nextChess, premoves);
         setPremoves(remaining);
         setUndoStack([]);
-      } catch { /* bad FEN */ }
+      } catch {
+        /* bad FEN */
+      }
     },
-    [chess, premoves, flushPremoves]
+    [chess, premoves, flushPremoves],
   );
 
   return {

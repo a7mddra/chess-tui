@@ -9,19 +9,9 @@
     "paths": {
       "@/*": ["packages/tui/src/*"]
     },
-    "lib": [
-      "ES2022"
-    ],
-    "types": [
-      "node",
-      "react"
-    ]
+    "lib": ["ES2022"],
+    "types": ["node", "react"]
   },
-  "include": [
-    "tests/**/*.ts",
-    "tests/**/*.tsx"
-  ],
-  "exclude": [
-    "packages"
-  ]
+  "include": ["tests/**/*.ts", "tests/**/*.tsx"],
+  "exclude": ["packages"]
 }

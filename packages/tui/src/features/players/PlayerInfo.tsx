@@ -1,3 +1,6 @@
+// Copyright 2026 a7mddra
+// SPDX-License-Identifier: MIT
+
 import React from "react";
 import { Box, Text } from "ink";
 import { UI_COLORS } from "@/lib";

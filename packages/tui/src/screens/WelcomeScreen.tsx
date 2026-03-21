@@ -1,3 +1,6 @@
+// Copyright 2026 a7mddra
+// SPDX-License-Identifier: MIT
+
 import React, { Fragment, type ReactNode, useMemo, useState } from "react";
 import { Box, Text, useApp, useInput, useStdout } from "ink";
 import { useRouter } from "@/router/AppRouter";

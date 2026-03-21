@@ -1,3 +1,6 @@
+// Copyright 2026 a7mddra
+// SPDX-License-Identifier: MIT
+
 import {
   PIECE_POWER,
   getPieceGlyph,
@@ -55,9 +58,10 @@ function computeDisplayClock(
   }
 
   const elapsedSinceSnapshot = Math.max(0, nowMs - snapshotTakenAt);
-  const liveMs = (player.isTurn && !isGameOver)
-    ? Math.max(0, player.clockMs - elapsedSinceSnapshot)
-    : player.clockMs;
+  const liveMs =
+    player.isTurn && !isGameOver
+      ? Math.max(0, player.clockMs - elapsedSinceSnapshot)
+      : player.clockMs;
   return formatClockFromMs(liveMs);
 }
 
@@ -139,7 +143,9 @@ function renderCaptured(
   for (const piece of CAPTURE_RENDER_ORDER) {
     const count = captured[piece];
     for (let i = 0; i < count; i += 1) {
-      symbols.push(getPieceGlyph(piece as PieceKind, targetColor as PieceColor));
+      symbols.push(
+        getPieceGlyph(piece as PieceKind, targetColor as PieceColor),
+      );
     }
   }
 
@@ -180,7 +186,12 @@ export function deriveOnlineState(
     };
   }
 
-  const userClock = computeDisplayClock(snapshot.user, nowMs, snapshot.takenAt, isGameOver);
+  const userClock = computeDisplayClock(
+    snapshot.user,
+    nowMs,
+    snapshot.takenAt,
+    isGameOver,
+  );
   const opponentClock = computeDisplayClock(
     snapshot.opponent,
     nowMs,
@@ -194,7 +205,8 @@ export function deriveOnlineState(
     snapshot.user.placement === "bottom" ? snapshot.user : snapshot.opponent;
 
   const topClock = topSource === snapshot.user ? userClock : opponentClock;
-  const bottomClock = bottomSource === snapshot.user ? userClock : opponentClock;
+  const bottomClock =
+    bottomSource === snapshot.user ? userClock : opponentClock;
 
   const activePlacement = snapshot.user.isTurn
     ? snapshot.user.placement

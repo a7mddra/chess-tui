@@ -1,3 +1,6 @@
+// Copyright 2026 a7mddra
+// SPDX-License-Identifier: MIT
+
 import React, { useEffect, useRef, useState } from "react";
 import { Box, Text } from "ink";
 import { UI_COLORS } from "@/lib";
@@ -9,7 +12,10 @@ type DvdBounceProps = {
   height: number;
 };
 
-export const DvdBounce = ({ width, height }: DvdBounceProps): React.JSX.Element => {
+export const DvdBounce = ({
+  width,
+  height,
+}: DvdBounceProps): React.JSX.Element => {
   const [pos, setPos] = useState({ x: 0, y: 0 });
   const vel = useRef({ dx: 1, dy: 1 });
 

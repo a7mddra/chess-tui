@@ -53,7 +53,7 @@ let heartbeatTimer: NodeJS.Timeout | null = null;
 const terminal = createInterface({
   input: stdin,
   output: stdout,
-  terminal: true
+  terminal: true,
 });
 
 function log(line: string): void {
@@ -94,16 +94,23 @@ function relay(payload: Record<string, unknown>): void {
   }
 }
 
-function relayStatus(status: "connected" | "disconnected", detail: string): void {
+function relayStatus(
+  status: "connected" | "disconnected",
+  detail: string,
+): void {
   relay({
     type: "status",
     status,
-    detail
+    detail,
   });
 }
 
 function handleIncoming(raw: unknown): void {
-  if (typeof raw !== "object" || raw === null || typeof (raw as { type?: unknown }).type !== "string") {
+  if (
+    typeof raw !== "object" ||
+    raw === null ||
+    typeof (raw as { type?: unknown }).type !== "string"
+  ) {
     log("[ext] ignoring malformed message.");
     return;
   }
@@ -113,7 +120,9 @@ function handleIncoming(raw: unknown): void {
 
   switch (message.type) {
     case "status":
-      log(`[ext] status=${message.status}${message.detail ? ` (${message.detail})` : ""}`);
+      log(
+        `[ext] status=${message.status}${message.detail ? ` (${message.detail})` : ""}`,
+      );
       return;
     case "fen":
       log(`[fen] ${message.fen}`);
@@ -125,7 +134,9 @@ function handleIncoming(raw: unknown): void {
       }
       const elapsed = pending ? `${Date.now() - pending.sentAt}ms` : "n/a";
       if (message.ok) {
-        log(`[move] ${pending?.uci ?? message.requestId} applied in ${elapsed}`);
+        log(
+          `[move] ${pending?.uci ?? message.requestId} applied in ${elapsed}`,
+        );
         if (message.fen) {
           log(`[fen] ${message.fen}`);
         }
@@ -166,7 +177,7 @@ wsServer.on("connection", (socket, request) => {
     }
     sendJson({
       type: "ping",
-      requestId: `${HEARTBEAT_PREFIX}${randomUUID()}`
+      requestId: `${HEARTBEAT_PREFIX}${randomUUID()}`,
     });
   }, HEARTBEAT_INTERVAL_MS);
 
@@ -201,7 +212,9 @@ wsServer.on("connection", (socket, request) => {
 
 wsServer.on("error", (error: NodeJS.ErrnoException) => {
   if (error.code === "EADDRINUSE") {
-    log(`[bridge] port ${EXTENSION_PORT} is already in use. Stop the other test harness and retry.`);
+    log(
+      `[bridge] port ${EXTENSION_PORT} is already in use. Stop the other test harness and retry.`,
+    );
     process.exit(1);
   }
 
@@ -214,9 +227,12 @@ relayServer.on("connection", (socket) => {
   socket.send(
     JSON.stringify({
       type: "status",
-      status: extensionSocket?.readyState === WebSocket.OPEN ? "connected" : "disconnected",
-      detail: "Attached to move-harness relay stream."
-    })
+      status:
+        extensionSocket?.readyState === WebSocket.OPEN
+          ? "connected"
+          : "disconnected",
+      detail: "Attached to move-harness relay stream.",
+    }),
   );
 
   socket.on("close", () => {
@@ -230,7 +246,9 @@ relayServer.on("connection", (socket) => {
 
 relayServer.on("error", (error: NodeJS.ErrnoException) => {
   if (error.code === "EADDRINUSE") {
-    log(`[relay] port ${RELAY_PORT} is already in use. Stop the other relay consumer and retry.`);
+    log(
+      `[relay] port ${RELAY_PORT} is already in use. Stop the other relay consumer and retry.`,
+    );
     process.exit(1);
   }
 
@@ -260,14 +278,16 @@ terminal.on("line", (line) => {
   if (input === "ping") {
     sendJson({
       type: "ping",
-      requestId: randomUUID()
+      requestId: randomUUID(),
     });
     printPrompt();
     return;
   }
 
   if (!UCI_MOVE_REGEX.test(input)) {
-    log(`[input] invalid move format: "${input}". Expected like e2e4 or e7e8q.`);
+    log(
+      `[input] invalid move format: "${input}". Expected like e2e4 or e7e8q.`,
+    );
     printPrompt();
     return;
   }
@@ -275,13 +295,13 @@ terminal.on("line", (line) => {
   const requestId = randomUUID();
   pendingMoves.set(requestId, {
     uci: input,
-    sentAt: Date.now()
+    sentAt: Date.now(),
   });
 
   sendJson({
     type: "move",
     requestId,
-    uci: input
+    uci: input,
   });
   printPrompt();
 });
@@ -301,7 +321,10 @@ function shutdown(): void {
     extensionSocket.close();
   }
   for (const client of relayClients) {
-    if (client.readyState === WebSocket.OPEN || client.readyState === WebSocket.CONNECTING) {
+    if (
+      client.readyState === WebSocket.OPEN ||
+      client.readyState === WebSocket.CONNECTING
+    ) {
       client.close();
     }
   }

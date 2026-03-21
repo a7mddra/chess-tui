@@ -13,7 +13,7 @@ const buildOptions = {
   entryPoints: [
     resolve(packageRoot, "src/background.ts"),
     resolve(packageRoot, "src/content.ts"),
-    resolve(packageRoot, "src/page-bridge.ts")
+    resolve(packageRoot, "src/page-bridge.ts"),
   ],
   bundle: true,
   outdir: distDir,
@@ -21,13 +21,16 @@ const buildOptions = {
   platform: "browser",
   target: ["chrome120"],
   sourcemap: watchMode,
-  logLevel: "info"
+  logLevel: "info",
 };
 
 function prepareDistDir() {
   rmSync(distDir, { recursive: true, force: true });
   mkdirSync(distDir, { recursive: true });
-  cpSync(resolve(packageRoot, "manifest.json"), resolve(distDir, "manifest.json"));
+  cpSync(
+    resolve(packageRoot, "manifest.json"),
+    resolve(distDir, "manifest.json"),
+  );
 }
 
 async function run() {

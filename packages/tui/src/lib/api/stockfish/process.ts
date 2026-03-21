@@ -1,3 +1,6 @@
+// Copyright 2026 a7mddra
+// SPDX-License-Identifier: MIT
+
 import { cpus } from "node:os";
 import { createRequire } from "node:module";
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
@@ -95,7 +98,10 @@ export class StockfishProcess {
     return await this.enqueue(async () => {
       await this.ensureReady();
 
-      const moveTimeMs = Math.max(50, request.moveTimeMs ?? DEFAULT_MOVE_TIME_MS);
+      const moveTimeMs = Math.max(
+        50,
+        request.moveTimeMs ?? DEFAULT_MOVE_TIME_MS,
+      );
       const threads = request.threads ?? resolveRecommendedThreads();
       const hashMb = Math.max(16, request.hashMb ?? DEFAULT_HASH_MB);
       const analysisInfo: EngineAnalyzeResult["info"] = [];
@@ -120,7 +126,11 @@ export class StockfishProcess {
         }
 
         this.send("isready");
-        await this.waitFor((line) => line.type === "readyok", DEFAULT_TIMEOUT_MS, "readyok timeout before analysis");
+        await this.waitFor(
+          (line) => line.type === "readyok",
+          DEFAULT_TIMEOUT_MS,
+          "readyok timeout before analysis",
+        );
 
         this.send(`position fen ${request.fen}`);
         this.send(`go movetime ${moveTimeMs}`);
@@ -209,9 +219,17 @@ export class StockfishProcess {
       });
 
       this.send("uci");
-      await this.waitFor((line) => line.type === "uciok", DEFAULT_TIMEOUT_MS, "uciok timeout");
+      await this.waitFor(
+        (line) => line.type === "uciok",
+        DEFAULT_TIMEOUT_MS,
+        "uciok timeout",
+      );
       this.send("isready");
-      await this.waitFor((line) => line.type === "readyok", DEFAULT_TIMEOUT_MS, "readyok timeout");
+      await this.waitFor(
+        (line) => line.type === "readyok",
+        DEFAULT_TIMEOUT_MS,
+        "readyok timeout",
+      );
 
       this.state = "ready";
     })().catch((error: unknown) => {
@@ -295,7 +313,10 @@ export class StockfishProcess {
 
   private async enqueue<T>(task: () => Promise<T>): Promise<T> {
     const run = this.queue.then(task, task);
-    this.queue = run.then(() => undefined, () => undefined);
+    this.queue = run.then(
+      () => undefined,
+      () => undefined,
+    );
     return await run;
   }
 }

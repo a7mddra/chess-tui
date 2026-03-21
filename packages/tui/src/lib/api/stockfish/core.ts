@@ -1,3 +1,6 @@
+// Copyright 2026 a7mddra
+// SPDX-License-Identifier: MIT
+
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { userInfo } from "node:os";
 import { Chess } from "chess.js";
@@ -134,7 +137,9 @@ const resolveStartFenForColor = (playerColor: SideColor): string => {
   return applyUciMoveToFen(START_FEN, openingMove) ?? START_FEN;
 };
 
-const parseMaterial = (fen: string): {
+const parseMaterial = (
+  fen: string,
+): {
   capturedBy: Record<SideColor, Record<PieceCode, number>>;
   score: Record<SideColor, number>;
 } => {
@@ -214,7 +219,10 @@ const formatPlayers = (
 
   const material = parseMaterial(fen);
 
-  const topCaptured = renderCaptured(material.capturedBy[topColor], bottomColor);
+  const topCaptured = renderCaptured(
+    material.capturedBy[topColor],
+    bottomColor,
+  );
   const bottomCaptured = renderCaptured(
     material.capturedBy[bottomColor],
     topColor,
@@ -251,7 +259,10 @@ const formatPlayers = (
   };
 };
 
-const resolvePlacement = (fen: string, orientation: SideColor): Placement | null => {
+const resolvePlacement = (
+  fen: string,
+  orientation: SideColor,
+): Placement | null => {
   const turn = fen.trim().split(/\s+/)[1];
   if (turn !== "w" && turn !== "b") {
     return null;
@@ -368,7 +379,10 @@ export const useStockfishGame = (enabled: boolean): StockfishGameView => {
             thinking: false,
             statusLine: `illegal bestmove: ${bestMove}`,
           }));
-          return { ok: false, error: `Engine returned invalid move ${bestMove}.` };
+          return {
+            ok: false,
+            error: `Engine returned invalid move ${bestMove}.`,
+          };
         }
 
         setState((prev) => {

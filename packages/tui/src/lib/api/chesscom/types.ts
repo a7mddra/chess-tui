@@ -1,3 +1,6 @@
+// Copyright 2026 a7mddra
+// SPDX-License-Identifier: MIT
+
 export type PlayerClockSnapshot = {
   username: string | null;
   nationality: string | null;
@@ -16,7 +19,12 @@ export type GameClockSnapshot = {
   boardOrientation?: "w" | "b";
 };
 
-export type CommandInteraction = "new" | "resign" | "draw" | "accept" | "decline";
+export type CommandInteraction =
+  | "new"
+  | "resign"
+  | "draw"
+  | "accept"
+  | "decline";
 
 export type ExtensionInboundMessage =
   | {
@@ -83,7 +91,7 @@ export type ExtensionInboundMessage =
       url: string;
     };
 
-export type ExtensionOutboundMessage = 
+export type ExtensionOutboundMessage =
   | {
       type: "move";
       uci: string;

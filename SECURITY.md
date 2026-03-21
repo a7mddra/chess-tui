@@ -5,11 +5,13 @@ This document explains the security boundary of this project and the user's resp
 ## 1) Data Boundary: Streamer/Injector, Not Account Secret Storage
 
 `chess-tui` is designed as a bridge between:
+
 - terminal input/output
 - a local WebSocket process
 - browser page APIs on an active Chess.com tab
 
 The project is not intended to collect or manage account secrets. In normal operation, it does not require storing:
+
 - Chess.com passwords
 - session cookies
 - authentication tokens
@@ -24,6 +26,7 @@ This project does not endorse cheating, botting, or unfair-play automation.
 If a user chooses to connect external engines/bots (for example Stockfish or other AI systems) and uses them in ways that violate platform rules, that is solely the user's decision and responsibility.
 
 Project maintainers are not responsible for:
+
 - Chess.com warnings, fair-play actions, suspensions, or account bans
 - losses caused by misuse of this software
 - violations of third-party Terms of Service by end users

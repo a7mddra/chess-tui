@@ -1,13 +1,16 @@
+// Copyright 2026 a7mddra
+// SPDX-License-Identifier: MIT
+
 import { render, Box, Text, useApp, useInput, useStdout } from "ink";
 import React, { useState } from "react";
 import { AppRouter } from "@/router/AppRouter";
 import { Board, useBoardIpcClient } from "@/features";
 
-// ---------------------------------------------------------------------------
-// Standalone board window
-// ---------------------------------------------------------------------------
-
-const BoardScreen = ({ sessionId }: { sessionId: string }): React.JSX.Element => {
+const BoardScreen = ({
+  sessionId,
+}: {
+  sessionId: string;
+}): React.JSX.Element => {
   const { exit } = useApp();
   const { stdout } = useStdout();
   const boardProps = useBoardIpcClient(sessionId);
@@ -45,11 +48,7 @@ const BoardScreen = ({ sessionId }: { sessionId: string }): React.JSX.Element =>
   );
 };
 
-// ---------------------------------------------------------------------------
-// Main entry
-// ---------------------------------------------------------------------------
-
-const detachedArg = process.argv.find(arg => arg.startsWith("--session-id="));
+const detachedArg = process.argv.find((arg) => arg.startsWith("--session-id="));
 if (process.argv.includes("--detached-board") && detachedArg) {
   const sessionId = detachedArg.split("=")[1];
   if (sessionId) {

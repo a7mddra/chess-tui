@@ -1,3 +1,6 @@
+// Copyright 2026 a7mddra
+// SPDX-License-Identifier: MIT
+
 import React from "react";
 import { Box, Text } from "ink";
 import { UI_COLORS } from "@/lib";
@@ -69,15 +72,10 @@ export const HighlightBox = ({
 }: HighlightBoxProps): React.JSX.Element => {
   const rawLines = Array.isArray(label) ? label : [label];
 
-  // Reserve one trailing cell so wrapped text never touches the right edge.
-  // For left align we also keep the existing one-cell left padding,
-  // so effective text width is width-2.
-  const contentWidth = align === "left"
-    ? Math.max(0, width - 2)
-    : Math.max(0, width - 1);
+  const contentWidth =
+    align === "left" ? Math.max(0, width - 2) : Math.max(0, width - 1);
   const lines = wrapLines(rawLines, contentWidth);
 
-  // Always start from the top (row 0)
   const startIdx = 0;
 
   return (
@@ -92,12 +90,14 @@ export const HighlightBox = ({
       paddingTop={paddingTop}
       paddingBottom={paddingBottom}
     >
-      {topBorder && <Text color={DIM_BG}>{"▄".repeat(Math.max(0, width))}</Text>}
+      {topBorder && (
+        <Text color={DIM_BG}>{"▄".repeat(Math.max(0, width))}</Text>
+      )}
       {Array.from({ length: height }, (_, i) => {
         let line = " ".repeat(width);
         const text =
           i >= startIdx && i < startIdx + lines.length
-            ? (lines[i - startIdx] || "")
+            ? lines[i - startIdx] || ""
             : "";
 
         if (text) {

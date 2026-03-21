@@ -1,3 +1,6 @@
+// Copyright 2026 a7mddra
+// SPDX-License-Identifier: MIT
+
 import { type Square } from "chess.js";
 
 export type BoardCell = {

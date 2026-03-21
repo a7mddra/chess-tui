@@ -1,3 +1,6 @@
+// Copyright 2026 a7mddra
+// SPDX-License-Identifier: MIT
+
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Box, Text } from "ink";
 import { HighlightBox } from "@/components";
@@ -194,7 +197,8 @@ export const InputBox = ({
       return false;
     }
 
-    const nextIndex = historyIndex === -1 ? history.length - 1 : Math.max(0, historyIndex - 1);
+    const nextIndex =
+      historyIndex === -1 ? history.length - 1 : Math.max(0, historyIndex - 1);
 
     if (historyIndex === -1) {
       setHistoryDraft(value);

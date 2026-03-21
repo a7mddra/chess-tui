@@ -1,0 +1,35 @@
+# ==============================================================================
+# Auto detect text files and perform LF normalization (prevents CRLF issues on Windows)
+# ==============================================================================
+* text=auto eol=lf
+
+# ==============================================================================
+# Treat specific files as binary
+# ==============================================================================
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.mp4 binary
+*.mov binary
+
+# ==============================================================================
+# Language & Diff Configurations
+# ==============================================================================
+# Explicitly force LF for source code files
+*.js text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.jsx text eol=lf
+*.css text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+
+# Ignore minified bundles and source maps in git diffs
+*.min.js linguist-generated=true -diff
+*.map linguist-generated=true -diff
+
+# Treat the npm lockfile securely but don't show huge diffs in PRs if possible
+package-lock.json linguist-generated=true

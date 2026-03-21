@@ -16,14 +16,14 @@
 chess.com tab  ←→  Chrome extension  ←→  WebSocket  ←→  Terminal UI (Ink/React)
 ```
 
-Chess.com exposes `board.move()` in the page's JavaScript scope. Our extension uses this to inject moves and scrapes game state (FEN, clocks, player info) from the DOM. The TUI renders everything in the terminal and sends moves back through the same pipeline.
+Chess.com exposes `board.move()` in the page's JavaScript scope. Our extension uses this to inject moves and scrape game state (FEN, clocks, player info) from the DOM. The TUI renders everything in the terminal and sends moves back through the same pipeline while the tab is minimized.
 
 ## Quick Start
 
-**Prerequisite:**
+**Prerequisites:**
 
 - Ensure you have [Node.js and npm](https://nodejs.org/) installed on your machine.
-- Ensure you have a [Chrome](https://www.google.com/chrome/) browser. (more browsers coming soon)
+- Ensure you have the [Chrome](https://www.google.com/chrome/) browser installed. (More browsers coming soon.)
 - Ensure you have a [chess.com](https://chess.com) account.
 
 ### 1. Install the CLI
@@ -43,7 +43,7 @@ To connect to your real chess.com games, you need the companion Chrome extension
 3. Open [`chrome://extensions`](chrome://extensions) in your browser.
 4. Enable **"Developer mode"** (toggle in the top right).
 5. Click **"Load unpacked"** and select the extracted folder.
-   _(Note: If Chrome shows any errors on the extension card, safely ignore them)._
+   _(Note: If Chrome shows any errors on the extension card, you can safely ignore them.)_
 
 ### 3. Play!
 
@@ -60,13 +60,13 @@ Enjoy playing ad-free right from your terminal!
 
 ### 4. Troubleshooting
 
-80% of your expected problems/bugs will be in connection between chrome and terminal, the only way to debug is chrome-tab reload and tui restart till you make them coubled.
+Most issues come from the connection between Chrome and the terminal. The best way to fix them is to reload the Chrome tab and restart the TUI until they reconnect.
 
 ## Game Modes
 
 ### Online (chess.com)
 
-Connect to your chess.com session through the extension. Play live games with real opponents, see clocks, elo, draw offers, and captured pieces — all in the terminal.
+Connect to your chess.com session through the extension. Play live games with real opponents, see clocks, Elo, draw offers, and captured pieces — all in the terminal.
 
 ### Offline (Stockfish)
 
@@ -109,4 +109,6 @@ chess-tui does not endorse cheating. The extension injects moves the same way a 
 
 ## License
 
-See [LICENSE](LICENSE).
+MIT License. See [LICENSE](LICENSE).
+
+**Disclaimer:** `chess-tui` is an independently developed, unofficial open-source project. It is **not** affiliated with, endorsed by, sponsored by, or otherwise associated with Chess.com. All trademarks, service marks, and company names are the property of their respective owners. By using this software, you agree to abide by the Terms of Service and Fair Play guidelines of the corresponding platforms.

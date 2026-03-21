@@ -1,3 +1,6 @@
+// Copyright 2026 a7mddra
+// SPDX-License-Identifier: MIT
+
 export * from "./api/index";
 export * from "./chess/piece";
 export * from "./chess/types";

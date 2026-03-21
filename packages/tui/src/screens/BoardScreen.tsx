@@ -1,12 +1,11 @@
+// Copyright 2026 a7mddra
+// SPDX-License-Identifier: MIT
+
 import { render } from "ink";
 import React, { useState } from "react";
 import { Box, Text, useApp, useInput, useStdout } from "ink";
 import { Board } from "@/features";
 import { useChessBoard } from "@/features/board/use-chess-board";
-
-// ---------------------------------------------------------------------------
-// Standalone board window
-// ---------------------------------------------------------------------------
 
 const BoardWindow = (): React.JSX.Element => {
   const { exit } = useApp();

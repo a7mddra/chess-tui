@@ -1,3 +1,6 @@
+// Copyright 2026 a7mddra
+// SPDX-License-Identifier: MIT
+
 import { useEffect, useMemo, useState } from "react";
 import type { ApiPlayer } from "../index";
 import { getBridgeWsUrl, onlineBridge } from "./bridge";
@@ -28,7 +31,9 @@ export type OnlineGameView = {
 };
 
 export const useOnlineGame = (enabled: boolean): OnlineGameView => {
-  const [state, setState] = useState<BridgeState>(() => onlineBridge.getState());
+  const [state, setState] = useState<BridgeState>(() =>
+    onlineBridge.getState(),
+  );
   const [nowMs, setNowMs] = useState(() => Date.now());
 
   useEffect(() => {
@@ -59,7 +64,13 @@ export const useOnlineGame = (enabled: boolean): OnlineGameView => {
   }, [enabled]);
 
   const derived = useMemo(
-    () => deriveOnlineState(state.latestSnapshot, state.latestFen, nowMs, state.lastGameOver !== null),
+    () =>
+      deriveOnlineState(
+        state.latestSnapshot,
+        state.latestFen,
+        nowMs,
+        state.lastGameOver !== null,
+      ),
     [state.latestSnapshot, state.latestFen, nowMs, state.lastGameOver],
   );
 
@@ -80,6 +91,7 @@ export const useOnlineGame = (enabled: boolean): OnlineGameView => {
     lastGameOver: state.lastGameOver,
     lastDrawOfferedAt: state.lastDrawOfferedAt,
     sendMove: (uci: string) => onlineBridge.sendMove(uci),
-    sendInteraction: (cmd: CommandInteraction) => onlineBridge.sendInteraction(cmd),
+    sendInteraction: (cmd: CommandInteraction) =>
+      onlineBridge.sendInteraction(cmd),
   };
 };

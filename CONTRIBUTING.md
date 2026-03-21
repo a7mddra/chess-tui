@@ -48,24 +48,18 @@ Barrel files (`index.ts`) exist at package boundaries: `@/lib`, `@/features`, `@
 
 ## Where to Add Things
 
-| What you're adding | Where it goes |
-|---|---|
-| New chess data types or piece logic | `lib/chess/` |
-| New external API integration | `lib/api/<provider>/` |
-| New dialog messages | `lib/config/dialogs.ts` |
-| New slash commands | `lib/config/commands.ts` |
-| New board theme | `lib/config/palette.ts` |
-| New keyboard shortcuts | `lib/config/shortcuts.ts` |
-| New dumb UI component | `components/` |
-| New game feature with state | `features/<name>/` |
-| New screen | `screens/` |
-| System-level utility | `lib/` root (next to `open-url.ts`, `spawn-terminal.ts`) |
-
-## Known Rough Edges
-
-- **`GameScreen.tsx` is 725 lines** — handles all game modes (chesscom, stockfish, mock), all input states (theme picker, elo prompt, exit confirm), and all layout. It works but is a future refactor candidate. Don't be surprised by its size.
-- **`stockfish/core.ts` is 500 lines** — the `useStockfishGame` hook mixes process management with React state. Works, but tightly coupled to React.
-- **Race conditions in online mode** — chess.com's DOM is volatile. The extension polls for game elements and sometimes misses transitions. Known issue being actively improved.
+| What you're adding                  | Where it goes             |
+| ----------------------------------- | ------------------------- |
+| New chess data types or piece logic | `lib/chess/`              |
+| New external API integration        | `lib/api/<provider>/`     |
+| New dialog messages                 | `lib/config/dialogs.ts`   |
+| New slash commands                  | `lib/config/commands.ts`  |
+| New board theme                     | `lib/config/palette.ts`   |
+| New keyboard shortcuts              | `lib/config/shortcuts.ts` |
+| New dumb UI component               | `components/`             |
+| New game feature with state         | `features/<name>/`        |
+| New screen                          | `screens/`                |
+| OS-specific utility                 | `lib/platform/`           |
 
 ## Fixture Handling
 

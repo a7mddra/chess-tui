@@ -20,18 +20,11 @@ const buildOptions = {
   logLevel: "info",
   // Externalize all dependencies so they are installed via package.json
   // instead of being bundled into the output file.
-  external: [
-    "ink",
-    "react",
-    "chess.js",
-    "stockfish",
-    "ws",
-    "@opentui/core"
-  ],
+  external: ["ink", "react", "chess.js", "stockfish", "ws", "@opentui/core"],
   // Resolve `@/` to `src/` to match tsconfig paths
   alias: {
-    "@": resolve(packageRoot, "src")
-  }
+    "@": resolve(packageRoot, "src"),
+  },
 };
 
 function prepareDistDir() {

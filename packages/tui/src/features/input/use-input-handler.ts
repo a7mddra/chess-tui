@@ -1,3 +1,6 @@
+// Copyright 2026 a7mddra
+// SPDX-License-Identifier: MIT
+
 import { useInput } from "ink";
 import type { Command } from "@/lib";
 
@@ -85,13 +88,23 @@ export const useInputHandler = ({
     } else if ((key.ctrl || key.meta) && (_input ?? "").toLowerCase() === "z") {
       onUndoRequest?.();
     } else if (key.upArrow) {
-      if (isCommandMode && filteredCommands.length > 0 && !isNavigatingHistory) {
-        setSelectedIndex((i) => (i - 1 + filteredCommands.length) % filteredCommands.length);
+      if (
+        isCommandMode &&
+        filteredCommands.length > 0 &&
+        !isNavigatingHistory
+      ) {
+        setSelectedIndex(
+          (i) => (i - 1 + filteredCommands.length) % filteredCommands.length,
+        );
       } else {
         onHistoryUp?.();
       }
     } else if (key.downArrow) {
-      if (isCommandMode && filteredCommands.length > 0 && !isNavigatingHistory) {
+      if (
+        isCommandMode &&
+        filteredCommands.length > 0 &&
+        !isNavigatingHistory
+      ) {
         setSelectedIndex((i) => (i + 1) % filteredCommands.length);
       } else {
         onHistoryDown?.();

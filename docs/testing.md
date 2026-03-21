@@ -5,7 +5,7 @@
 chess-tui is built on two core primitives:
 
 1. **Stream/Watch** — scrape game state from chess.com and relay it to the terminal
-2. **Inject** — send moves from the terminal back to chess.com via `board.move()`
+2. **Inject** — send moves and game interactions from the terminal back to chess.com via `board.move()` and DOM button clicks
 
 The root-level test suite proves these two primitives work independently. Everything else (board rendering, premoves, player info, dialogs) is UI built on top. If the primitives work, the UI is a matter of React correctness, which TypeScript catches at compile time.
 
@@ -31,7 +31,7 @@ npm run test:move-bridge
 npm run test:live-telemetry
 ```
 
-**What it proves:** chess.com game state → extension → WebSocket → terminal display works. Shows live FEN, player usernames, elo, clocks, and turn indicator.
+**What it proves:** chess.com game state → extension → WebSocket → terminal display works. Shows live FEN, player usernames, Elo, clocks, and turn indicator.
 
 **How to use:** Same prerequisites as move bridge. Start the test with a chess.com game open and watch the terminal display update in real-time as the game progresses.
 

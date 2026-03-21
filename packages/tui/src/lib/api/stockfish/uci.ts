@@ -1,3 +1,6 @@
+// Copyright 2026 a7mddra
+// SPDX-License-Identifier: MIT
+
 import type { EngineInfo, EngineScore, ParsedUciLine } from "./types";
 
 const parseIntSafe = (value: string | undefined): number | undefined => {
@@ -9,7 +12,10 @@ const parseIntSafe = (value: string | undefined): number | undefined => {
   return Number.isNaN(parsed) ? undefined : parsed;
 };
 
-const parseScore = (tokens: string[], scoreIdx: number): EngineScore | undefined => {
+const parseScore = (
+  tokens: string[],
+  scoreIdx: number,
+): EngineScore | undefined => {
   const kind = tokens[scoreIdx + 1];
   const valueToken = tokens[scoreIdx + 2];
   const value = parseIntSafe(valueToken);

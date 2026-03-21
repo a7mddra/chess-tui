@@ -1,3 +1,6 @@
+// Copyright 2026 a7mddra
+// SPDX-License-Identifier: MIT
+
 export const HEX = {
   white: "#ffffff",
   black: "#000000",

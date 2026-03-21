@@ -1,9 +1,12 @@
+// Copyright 2026 a7mddra
+// SPDX-License-Identifier: MIT
+
 import {
   isGameClockSnapshot,
   isApplyMoveCommand,
   isApplyInteractionCommand,
   type GameClockSnapshot,
-  type ApplyMoveResponse
+  type ApplyMoveResponse,
 } from "./protocol";
 
 const CONTENT_SOURCE = "chess-tui-content";
@@ -47,9 +50,9 @@ function postToPage(message: Record<string, unknown>): void {
     {
       source: CONTENT_SOURCE,
       target: PAGE_SOURCE,
-      ...message
+      ...message,
     },
-    "*"
+    "*",
   );
 }
 
@@ -62,72 +65,92 @@ function handleMoveTimeout(requestId: string): void {
   pendingRequests.delete(requestId);
   pending.sendResponse({
     ok: false,
-    error: "Timed out waiting for board response."
+    error: "Timed out waiting for board response.",
   });
 }
 
-function notifyBackgroundReady(fen?: string, snapshot?: GameClockSnapshot): void {
+function notifyBackgroundReady(
+  fen?: string,
+  snapshot?: GameClockSnapshot,
+): void {
   void chrome.runtime.sendMessage({
     type: "TAB_READY",
     href: window.location.href,
     fen,
-    snapshot
+    snapshot,
   });
 }
 
-chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) => {
-  if (typeof message === "object" && message !== null && (message as { type?: unknown }).type === "HEALTHCHECK") {
-    sendResponse({
-      ok: true,
-      href: window.location.href
-    });
-    return;
-  }
+chrome.runtime.onMessage.addListener(
+  (message: unknown, _sender, sendResponse) => {
+    if (
+      typeof message === "object" &&
+      message !== null &&
+      (message as { type?: unknown }).type === "HEALTHCHECK"
+    ) {
+      sendResponse({
+        ok: true,
+        href: window.location.href,
+      });
+      return;
+    }
 
-  if (isApplyMoveCommand(message)) {
-    const timeoutId = window.setTimeout(() => {
-      handleMoveTimeout(message.requestId);
-    }, MOVE_TIMEOUT_MS);
+    if (isApplyMoveCommand(message)) {
+      const timeoutId = window.setTimeout(() => {
+        handleMoveTimeout(message.requestId);
+      }, MOVE_TIMEOUT_MS);
 
-    pendingRequests.set(message.requestId, { sendResponse, timeoutId });
+      pendingRequests.set(message.requestId, { sendResponse, timeoutId });
 
-    postToPage({
-      type: "APPLY_MOVE",
-      requestId: message.requestId,
-      uci: message.uci
-    });
+      postToPage({
+        type: "APPLY_MOVE",
+        requestId: message.requestId,
+        uci: message.uci,
+      });
 
-    return true;
-  }
+      return true;
+    }
 
-  if (isApplyInteractionCommand(message)) {
-    const timeoutId = window.setTimeout(() => {
-      handleMoveTimeout(message.requestId);
-    }, MOVE_TIMEOUT_MS);
+    if (isApplyInteractionCommand(message)) {
+      const timeoutId = window.setTimeout(() => {
+        handleMoveTimeout(message.requestId);
+      }, MOVE_TIMEOUT_MS);
 
-    pendingRequests.set(message.requestId, { sendResponse, timeoutId });
+      pendingRequests.set(message.requestId, { sendResponse, timeoutId });
 
-    postToPage({
-      type: "APPLY_INTERACTION",
-      requestId: message.requestId,
-      command: message.command
-    });
+      postToPage({
+        type: "APPLY_INTERACTION",
+        requestId: message.requestId,
+        command: message.command,
+      });
 
-    return true;
-  }
-});
+      return true;
+    }
+  },
+);
 
 window.addEventListener("message", (event) => {
-  if (event.source !== window || typeof event.data !== "object" || event.data === null) {
+  if (
+    event.source !== window ||
+    typeof event.data !== "object" ||
+    event.data === null
+  ) {
     return;
   }
 
   const data = event.data as Record<string, unknown>;
-  if (data.source !== PAGE_SOURCE || data.target !== CONTENT_SOURCE || typeof data.type !== "string") {
+  if (
+    data.source !== PAGE_SOURCE ||
+    data.target !== CONTENT_SOURCE ||
+    typeof data.type !== "string"
+  ) {
     return;
   }
 
-  if ((data.type === "MOVE_RESULT" || data.type === "INTERACTION_RESULT") && typeof data.requestId === "string") {
+  if (
+    (data.type === "MOVE_RESULT" || data.type === "INTERACTION_RESULT") &&
+    typeof data.requestId === "string"
+  ) {
     const pending = pendingRequests.get(data.requestId);
     if (!pending) {
       return;
@@ -139,17 +162,19 @@ window.addEventListener("message", (event) => {
     pending.sendResponse({
       ok: data.ok === true,
       fen: typeof data.fen === "string" ? data.fen : undefined,
-      error: typeof data.error === "string" ? data.error : undefined
+      error: typeof data.error === "string" ? data.error : undefined,
     });
     return;
   }
 
   if (data.type === "FEN_UPDATE" && typeof data.fen === "string") {
-    const snapshot = isGameClockSnapshot(data.snapshot) ? data.snapshot : undefined;
+    const snapshot = isGameClockSnapshot(data.snapshot)
+      ? data.snapshot
+      : undefined;
     void chrome.runtime.sendMessage({
       type: "FEN_UPDATE",
       fen: data.fen,
-      snapshot
+      snapshot,
     });
     return;
   }
@@ -157,21 +182,26 @@ window.addEventListener("message", (event) => {
   if (data.type === "GAME_OVER" && typeof data.resultMessage === "string") {
     void chrome.runtime.sendMessage({
       type: "GAME_OVER",
-      resultMessage: data.resultMessage
+      resultMessage: data.resultMessage,
     });
     return;
   }
 
   if (data.type === "DRAW_OFFERED") {
     void chrome.runtime.sendMessage({
-      type: "DRAW_OFFERED"
+      type: "DRAW_OFFERED",
     });
     return;
   }
 
   if (data.type === "BRIDGE_READY") {
-    const snapshot = isGameClockSnapshot(data.snapshot) ? data.snapshot : undefined;
-    notifyBackgroundReady(typeof data.fen === "string" ? data.fen : undefined, snapshot);
+    const snapshot = isGameClockSnapshot(data.snapshot)
+      ? data.snapshot
+      : undefined;
+    notifyBackgroundReady(
+      typeof data.fen === "string" ? data.fen : undefined,
+      snapshot,
+    );
   }
 });
 
@@ -180,7 +210,7 @@ window.addEventListener("beforeunload", () => {
     window.clearTimeout(pending.timeoutId);
     pending.sendResponse({
       ok: false,
-      error: "Tab navigated before move completion."
+      error: "Tab navigated before move completion.",
     });
     pendingRequests.delete(requestId);
   }

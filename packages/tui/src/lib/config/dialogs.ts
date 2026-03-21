@@ -1,3 +1,6 @@
+// Copyright 2026 a7mddra
+// SPDX-License-Identifier: MIT
+
 import { PIECES_BY_CODE } from "@/lib/chess/piece";
 
 // ---------------------------------------------------------------------------

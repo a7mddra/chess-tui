@@ -1,3 +1,6 @@
+// Copyright 2026 a7mddra
+// SPDX-License-Identifier: MIT
+
 import React from "react";
 import { Box, Text } from "ink";
 import { UI_COLORS } from "@/lib";
@@ -53,7 +56,10 @@ export const InputCaret = ({
   return (
     <Box position="absolute" marginTop={1} width={width}>
       <Text backgroundColor={DIM_BG}> </Text>
-      <Text backgroundColor={DIM_BG} color={isEmpty ? UI_COLORS.border : UI_COLORS.muted}>
+      <Text
+        backgroundColor={DIM_BG}
+        color={isEmpty ? UI_COLORS.border : UI_COLORS.muted}
+      >
         {visibleBefore}
       </Text>
       <Text backgroundColor="white" color="black">

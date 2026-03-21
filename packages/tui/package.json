@@ -1,9 +1,16 @@
 {
   "name": "chess-tui",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "description": "Play chess.com from your terminal. Real account, real Elo, no ads.",
-  "keywords": ["chess", "tui", "terminal", "chess.com", "ink", "cli"],
+  "keywords": [
+    "chess",
+    "tui",
+    "terminal",
+    "chess.com",
+    "ink",
+    "cli"
+  ],
   "author": "a7mddra",
   "license": "MIT",
   "repository": {

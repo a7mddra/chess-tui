@@ -1,3 +1,6 @@
+// Copyright 2026 a7mddra
+// SPDX-License-Identifier: MIT
+
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { Box, Text, useInput, useStdout } from "ink";
 import { type ChildProcess } from "node:child_process";
@@ -33,10 +36,6 @@ import {
   mod,
 } from "@/lib";
 
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
 const ACCENT = UI_COLORS.accent;
 const BORDER_COLOR = UI_COLORS.border;
 const SPINNER_COLOR = UI_COLORS.spinner;
@@ -67,10 +66,6 @@ const CHESSCOM_TEMP_PLAYERS = {
   },
 };
 
-// ---------------------------------------------------------------------------
-// GameScreen
-// ---------------------------------------------------------------------------
-
 type GameScreenProps = {
   mode: GameMode;
 };
@@ -87,7 +82,9 @@ export const GameScreen = ({ mode }: GameScreenProps): React.JSX.Element => {
   const playerInfoWidth = Math.max(18, panelWidth - 4);
 
   const [detached, setDetached] = useState(false);
-  const [pendingPromotionMove, setPendingPromotionMove] = useState<string | null>(null);
+  const [pendingPromotionMove, setPendingPromotionMove] = useState<
+    string | null
+  >(null);
   const [dialogLines, setDialogLines] = useState<string[]>(() =>
     mode === "stockfish" ? DIALOG_STOCKFISH.lines : DIALOG_HOWTO.lines,
   );
@@ -150,7 +147,7 @@ export const GameScreen = ({ mode }: GameScreenProps): React.JSX.Element => {
           ? (online.boardOrientation ?? undefined)
           : mode === "stockfish"
             ? stockfish.boardOrientation
-          : undefined,
+            : undefined,
       onUndoFenDispatch:
         mode === "stockfish"
           ? (fen) => {
@@ -176,14 +173,17 @@ export const GameScreen = ({ mode }: GameScreenProps): React.JSX.Element => {
         .replace(/^Game Over\s*/i, "")
         .replace(/\(\d+\)\s*/g, "");
       const lastParen = cleaned.lastIndexOf("(");
-      const lines = lastParen > 0
-        ? ["Game Over", cleaned.slice(0, lastParen).trim(), cleaned.slice(lastParen).trim()]
-        : ["Game Over", cleaned];
+      const lines =
+        lastParen > 0
+          ? [
+              "Game Over",
+              cleaned.slice(0, lastParen).trim(),
+              cleaned.slice(lastParen).trim(),
+            ]
+          : ["Game Over", cleaned];
       setDialogLines(lines.filter(Boolean));
     }
   }, [mode, online.lastGameOver]);
-
-
 
   useEffect(() => {
     if (mode !== "stockfish") {
@@ -275,13 +275,17 @@ export const GameScreen = ({ mode }: GameScreenProps): React.JSX.Element => {
     : isBridgeWaitingForGame
       ? DIALOG_BROWSER_START.lines
       : mode === "chesscom"
-        ? (online.lastDrawOfferedAt ? DIALOG_DRAW_OFFERED.lines : DIALOG_HOWTO.lines)
+        ? online.lastDrawOfferedAt
+          ? DIALOG_DRAW_OFFERED.lines
+          : DIALOG_HOWTO.lines
         : mode === "stockfish"
-          ? (stockfish.gameOver
-            ? (stockfish.winner === "w"
-                ? DIALOG_WHITE_WON_RESIGNATION.lines
-                : DIALOG_BLACK_WON_RESIGNATION.lines)
-            : stockfishIntroOpen ? DIALOG_STOCKFISH.lines : DIALOG_HOWTO.lines)
+          ? stockfish.gameOver
+            ? stockfish.winner === "w"
+              ? DIALOG_WHITE_WON_RESIGNATION.lines
+              : DIALOG_BLACK_WON_RESIGNATION.lines
+            : stockfishIntroOpen
+              ? DIALOG_STOCKFISH.lines
+              : DIALOG_HOWTO.lines
           : DIALOG_HOWTO.lines;
   const lockDialog = themePickerOpen || pendingPromotionMove !== null;
   const activeThemeId = themePickerOpen
@@ -388,49 +392,58 @@ export const GameScreen = ({ mode }: GameScreenProps): React.JSX.Element => {
     [mode, eloPromptOpen, stockfish, pendingPromotionMove, chessBoard],
   );
 
-  const handleMoveSubmit = useCallback((input: string) => {
-    const normalized = input.trim().toLowerCase();
-    const isCoordLike = /^([a-h][1-8]-?[a-h][1-8]-?[qrbn]?|[a-h][1-8]-?[qrbn]?)$/.test(normalized);
-    const passToBoard = isCoordLike ? normalized.replace(/-/g, '') : normalized;
+  const handleMoveSubmit = useCallback(
+    (input: string) => {
+      const normalized = input.trim().toLowerCase();
+      const isCoordLike =
+        /^([a-h][1-8]-?[a-h][1-8]-?[qrbn]?|[a-h][1-8]-?[qrbn]?)$/.test(
+          normalized,
+        );
+      const passToBoard = isCoordLike
+        ? normalized.replace(/-/g, "")
+        : normalized;
 
-    let checkPromotionMove = passToBoard;
+      let checkPromotionMove = passToBoard;
 
-    if (chessBoard.selectedSquare && /^[a-h][1-8][qrbn]?$/.test(passToBoard)) {
-      checkPromotionMove = chessBoard.selectedSquare + passToBoard;
-    }
-
-    if (/^[a-h][1-8][a-h][1-8]$/.test(checkPromotionMove)) {
-      const from = checkPromotionMove.substring(0, 2);
-      const to = checkPromotionMove.substring(2, 4);
-      try {
-        const testChess = new Chess(chessBoard.fen);
-        const moveWithQ = testChess.move({ from, to, promotion: 'q' });
-        if (moveWithQ) {
-          const testChess2 = new Chess(chessBoard.fen);
-          let normalValid = false;
-          try {
-            if (testChess2.move({ from, to })) {
-               normalValid = true;
-            }
-          } catch {
-             normalValid = false;
-          }
-          if (!normalValid) {
-            if (checkPromotionMove.length === 4) {
-              setPendingPromotionMove(checkPromotionMove);
-              setDialogLines(DIALOG_PROMOTION_PROMPT.lines);
-              chessBoard.clearSelection();
-              return;
-            }
-          }
-        }
-      } catch {
-        // ignore and let chessBoard.handleUserInput throw its own error if any
+      if (
+        chessBoard.selectedSquare &&
+        /^[a-h][1-8][qrbn]?$/.test(passToBoard)
+      ) {
+        checkPromotionMove = chessBoard.selectedSquare + passToBoard;
       }
-    }
 
-    chessBoard.handleUserInput(passToBoard);
-  }, [chessBoard]);
+      if (/^[a-h][1-8][a-h][1-8]$/.test(checkPromotionMove)) {
+        const from = checkPromotionMove.substring(0, 2);
+        const to = checkPromotionMove.substring(2, 4);
+        try {
+          const testChess = new Chess(chessBoard.fen);
+          const moveWithQ = testChess.move({ from, to, promotion: "q" });
+          if (moveWithQ) {
+            const testChess2 = new Chess(chessBoard.fen);
+            let normalValid = false;
+            try {
+              if (testChess2.move({ from, to })) {
+                normalValid = true;
+              }
+            } catch {
+              normalValid = false;
+            }
+            if (!normalValid) {
+              if (checkPromotionMove.length === 4) {
+                setPendingPromotionMove(checkPromotionMove);
+                setDialogLines(DIALOG_PROMOTION_PROMPT.lines);
+                chessBoard.clearSelection();
+                return;
+              }
+            }
+          }
+        } catch {}
+      }
+
+      chessBoard.handleUserInput(passToBoard);
+    },
+    [chessBoard],
+  );
 
   useBoardIpcServer(sessionId, {
     board: chessBoard.board,
@@ -444,14 +457,12 @@ export const GameScreen = ({ mode }: GameScreenProps): React.JSX.Element => {
 
   const toggleDetach = useCallback(() => {
     if (detached) {
-      // Reattach — kill the detached window
       if (childRef.current) {
         childRef.current.kill();
         childRef.current = null;
       }
       setDetached(false);
     } else {
-      // Detach — spawn board in new terminal
       const child = spawnBoardWindow(sessionId);
       if (child) {
         childRef.current = child;
@@ -482,7 +493,9 @@ export const GameScreen = ({ mode }: GameScreenProps): React.JSX.Element => {
       }
 
       if (mode === "chesscom") {
-        if (["new", "resign", "draw", "accept", "decline"].includes(commandId)) {
+        if (
+          ["new", "resign", "draw", "accept", "decline"].includes(commandId)
+        ) {
           if (commandId === "new") {
             chessBoard.clearPremoves();
             chessBoard.clearSelection();
@@ -738,7 +751,12 @@ export const GameScreen = ({ mode }: GameScreenProps): React.JSX.Element => {
   });
 
   return showStockfishLoading ? (
-    <Box width={columns} height={rows} justifyContent="center" alignItems="center">
+    <Box
+      width={columns}
+      height={rows}
+      justifyContent="center"
+      alignItems="center"
+    >
       <Text color={BORDER_COLOR}>
         <SpinnerText color={SPINNER_COLOR} /> {STOCKFISH_LOADING_LABEL}
       </Text>
@@ -781,9 +799,7 @@ export const GameScreen = ({ mode }: GameScreenProps): React.JSX.Element => {
             commands={mockSnapshot.commands}
             disabled={themePickerOpen}
             onTextSubmit={handleTextSubmit}
-            onMove={
-              isBridgeWaitingForGame ? undefined : handleMoveSubmit
-            }
+            onMove={isBridgeWaitingForGame ? undefined : handleMoveSubmit}
             onCommand={handleCommand}
             defaultDialogLines={defaultDialogLines}
           />

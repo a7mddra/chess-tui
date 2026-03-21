@@ -5,22 +5,12 @@
     "moduleResolution": "Bundler",
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "src/*"
-      ]
+      "@/*": ["src/*"]
     },
     "jsx": "react-jsx",
-    "lib": [
-      "ES2022"
-    ],
-    "types": [
-      "node",
-      "react"
-    ],
+    "lib": ["ES2022"],
+    "types": ["node", "react"],
     "noEmit": true
   },
-  "include": [
-    "src/**/*.ts",
-    "src/**/*.tsx"
-  ]
+  "include": ["src/**/*.ts", "src/**/*.tsx"]
 }

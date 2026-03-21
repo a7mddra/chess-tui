@@ -1,11 +1,14 @@
-import { createServer, createConnection, Socket } from 'node:net';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { useEffect, useState, useRef } from 'react';
-import type { BoardProps } from '@/features/board/Board';
+// Copyright 2026 a7mddra
+// SPDX-License-Identifier: MIT
+
+import { createServer, createConnection, Socket } from "node:net";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { useEffect, useState, useRef } from "react";
+import type { BoardProps } from "@/features/board/Board";
 
 export const getIpcPath = (sessionId: string) => {
-  if (process.platform === 'win32') {
+  if (process.platform === "win32") {
     return `\\\\.\\pipe\\chess-tui-${sessionId}`;
   }
   return join(tmpdir(), `chess-tui-${sessionId}.sock`);
@@ -18,14 +21,13 @@ export const useBoardIpcServer = (sessionId: string, props: BoardProps) => {
     const path = getIpcPath(sessionId);
     const server = createServer((socket) => {
       clientsRef.current.add(socket);
-      
-      // Send initial state upon connection
-      socket.write(JSON.stringify(props) + '\n');
 
-      socket.on('end', () => {
+      socket.write(JSON.stringify(props) + "\n");
+
+      socket.on("end", () => {
         clientsRef.current.delete(socket);
       });
-      socket.on('error', () => {
+      socket.on("error", () => {
         clientsRef.current.delete(socket);
       });
     });
@@ -33,13 +35,11 @@ export const useBoardIpcServer = (sessionId: string, props: BoardProps) => {
     server.listen(path, () => {
       // ready
     });
-
-    server.on('error', (e: any) => {
-      if (e.code === 'EADDRINUSE') {
-        // cleanup old socket
+    server.on("error", (e: any) => {
+      if (e.code === "EADDRINUSE") {
         try {
           // eslint-disable-next-line @typescript-eslint/no-require-imports
-          const fs = require('node:fs');
+          const fs = require("node:fs");
           fs.unlinkSync(path);
           server.listen(path);
         } catch {}
@@ -53,12 +53,11 @@ export const useBoardIpcServer = (sessionId: string, props: BoardProps) => {
       }
       clientsRef.current.clear();
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId]); // Server stays alive for the session id
 
   useEffect(() => {
-    // Broadcast state on change
-    const payload = JSON.stringify(props) + '\n';
+    const payload = JSON.stringify(props) + "\n";
     for (const socket of clientsRef.current) {
       if (!socket.destroyed) {
         socket.write(payload);
@@ -74,28 +73,23 @@ export const useBoardIpcClient = (sessionId: string): BoardProps | null => {
     const path = getIpcPath(sessionId);
     const socket = createConnection(path);
 
-    let buffer = '';
+    let buffer = "";
 
-    socket.on('data', (data) => {
+    socket.on("data", (data) => {
       buffer += data.toString();
       let newlineIndex;
-      while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
+      while ((newlineIndex = buffer.indexOf("\n")) !== -1) {
         const line = buffer.slice(0, newlineIndex);
         buffer = buffer.slice(newlineIndex + 1);
         if (line.trim()) {
           try {
             const parsed = JSON.parse(line) as BoardProps;
             setProps(parsed);
-          } catch (e) {
-            // parse error
-          }
+          } catch {}
         }
       }
     });
-
-    socket.on('error', () => {
-      // ignore
-    });
+    socket.on("error", () => {});
 
     return () => {
       socket.destroy();

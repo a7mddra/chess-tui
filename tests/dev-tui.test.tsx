@@ -24,12 +24,9 @@ const DevScreen = (): React.JSX.Element => {
 
   const snapshot = getMockGameSnapshot("stockfish");
 
-  // In this dev test, we play both sides!
-  // The chessBoard is entirely driven by our inputs and flushPremoves handles the queue
-  // based on the sophisticated logic added earlier.
-  const chessBoard = useChessBoard(snapshot.fen, (uci) => {
-    // We could log the uci if needed
-  }, { selfPlay: true });
+  const chessBoard = useChessBoard(snapshot.fen, (uci) => {}, {
+    selfPlay: true,
+  });
 
   useInput((input, key) => {
     if (key.escape || (key.ctrl && input.toLowerCase() === "c")) {

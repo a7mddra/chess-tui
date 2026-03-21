@@ -1,6 +1,14 @@
+// Copyright 2026 a7mddra
+// SPDX-License-Identifier: MIT
+
 export const UCI_MOVE_REGEX = /^[a-h][1-8][a-h][1-8][qrbn]?$/i;
 
-export type CommandInteraction = "new" | "resign" | "draw" | "accept" | "decline";
+export type CommandInteraction =
+  | "new"
+  | "resign"
+  | "draw"
+  | "accept"
+  | "decline";
 
 export type WsInboundMessage =
   | {
@@ -141,7 +149,9 @@ function asOptionalString(value: unknown): string | undefined {
 }
 
 function asOptionalNumber(value: unknown): number | undefined {
-  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+  return typeof value === "number" && Number.isFinite(value)
+    ? value
+    : undefined;
 }
 
 export function parseWsInbound(value: unknown): WsInboundMessage | null {
@@ -158,7 +168,7 @@ export function parseWsInbound(value: unknown): WsInboundMessage | null {
     return {
       type: "move",
       uci: data.uci.toLowerCase(),
-      requestId: asOptionalString(data.requestId)
+      requestId: asOptionalString(data.requestId),
     };
   }
 
@@ -166,14 +176,14 @@ export function parseWsInbound(value: unknown): WsInboundMessage | null {
     return {
       type: "interaction",
       command: data.command as CommandInteraction,
-      requestId: asOptionalString(data.requestId)
+      requestId: asOptionalString(data.requestId),
     };
   }
 
   if (data.type === "ping") {
     return {
       type: "ping",
-      requestId: asOptionalString(data.requestId)
+      requestId: asOptionalString(data.requestId),
     };
   }
 
@@ -194,7 +204,9 @@ export function isApplyMoveCommand(value: unknown): value is ApplyMoveCommand {
   );
 }
 
-export function isApplyInteractionCommand(value: unknown): value is ApplyInteractionCommand {
+export function isApplyInteractionCommand(
+  value: unknown,
+): value is ApplyInteractionCommand {
   const data = asRecord(value);
   if (!data) return false;
   return (
@@ -205,7 +217,7 @@ export function isApplyInteractionCommand(value: unknown): value is ApplyInterac
 }
 
 export function isContentToBackgroundMessage(
-  value: unknown
+  value: unknown,
 ): value is ContentToBackgroundMessage {
   const data = asRecord(value);
   if (!data || typeof data.type !== "string") {
@@ -220,7 +232,9 @@ export function isContentToBackgroundMessage(
       return false;
     }
 
-    return typeof data.snapshot === "undefined" || isGameClockSnapshot(data.snapshot);
+    return (
+      typeof data.snapshot === "undefined" || isGameClockSnapshot(data.snapshot)
+    );
   }
 
   if (data.type === "FEN_UPDATE") {
@@ -228,7 +242,9 @@ export function isContentToBackgroundMessage(
       return false;
     }
 
-    return typeof data.snapshot === "undefined" || isGameClockSnapshot(data.snapshot);
+    return (
+      typeof data.snapshot === "undefined" || isGameClockSnapshot(data.snapshot)
+    );
   }
 
   if (data.type === "GAME_OVER" && typeof data.resultMessage === "string") {
@@ -246,7 +262,9 @@ function isPlayerPlacement(value: unknown): value is "top" | "bottom" {
   return value === "top" || value === "bottom";
 }
 
-export function isPlayerClockSnapshot(value: unknown): value is PlayerClockSnapshot {
+export function isPlayerClockSnapshot(
+  value: unknown,
+): value is PlayerClockSnapshot {
   const data = asRecord(value);
   if (!data) {
     return false;
@@ -263,7 +281,9 @@ export function isPlayerClockSnapshot(value: unknown): value is PlayerClockSnaps
   );
 }
 
-export function isGameClockSnapshot(value: unknown): value is GameClockSnapshot {
+export function isGameClockSnapshot(
+  value: unknown,
+): value is GameClockSnapshot {
   const data = asRecord(value);
   if (!data) {
     return false;
@@ -274,6 +294,8 @@ export function isGameClockSnapshot(value: unknown): value is GameClockSnapshot 
     (typeof data.fen === "string" || data.fen === null) &&
     isPlayerClockSnapshot(data.user) &&
     isPlayerClockSnapshot(data.opponent) &&
-    (typeof data.boardOrientation === "undefined" || data.boardOrientation === "w" || data.boardOrientation === "b")
+    (typeof data.boardOrientation === "undefined" ||
+      data.boardOrientation === "w" ||
+      data.boardOrientation === "b")
   );
 }

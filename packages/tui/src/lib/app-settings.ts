@@ -1,3 +1,6 @@
+// Copyright 2026 a7mddra
+// SPDX-License-Identifier: MIT
+
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir, platform } from "node:os";
 import { dirname, join } from "node:path";
@@ -34,7 +37,12 @@ function resolvePreferencesPath(): string {
 }
 
 function isBoardThemeId(value: unknown): value is BoardThemeId {
-  return value === "default" || value === "sea" || value === "wood" || value === "glassy";
+  return (
+    value === "default" ||
+    value === "sea" ||
+    value === "wood" ||
+    value === "glassy"
+  );
 }
 
 export function loadUserPreferences(): UserPreferences {
@@ -45,16 +53,23 @@ export function loadUserPreferences(): UserPreferences {
   }
 
   try {
-    const raw = JSON.parse(readFileSync(path, "utf8")) as Record<string, unknown>;
+    const raw = JSON.parse(readFileSync(path, "utf8")) as Record<
+      string,
+      unknown
+    >;
     return {
-      boardTheme: isBoardThemeId(raw.boardTheme) ? raw.boardTheme : DEFAULT_PREFERENCES.boardTheme,
+      boardTheme: isBoardThemeId(raw.boardTheme)
+        ? raw.boardTheme
+        : DEFAULT_PREFERENCES.boardTheme,
     };
   } catch {
     return DEFAULT_PREFERENCES;
   }
 }
 
-export function saveUserPreferences(next: Partial<UserPreferences>): UserPreferences {
+export function saveUserPreferences(
+  next: Partial<UserPreferences>,
+): UserPreferences {
   const current = loadUserPreferences();
   const merged: UserPreferences = {
     ...current,

@@ -1,3 +1,6 @@
+// Copyright 2026 a7mddra
+// SPDX-License-Identifier: MIT
+
 /**
  * Validate algebraic chess notation.
  * Matches: e2e4, Nf3, O-O, O-O-O, exd5, e8=Q, etc.
