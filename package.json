@@ -8,6 +8,8 @@
   ],
   "scripts": {
     "build:tui": "npm run build --workspace chess-tui",
+    "bump:ext": "node scripts/bump.mjs ext",
+    "bump:tui": "node scripts/bump.mjs tui",
     "build:ext": "npm run build --workspace @chess-tui/ext",
     "dev:ext": "npm run dev --workspace @chess-tui/ext",
     "dev:tui": "npm run dev --workspace chess-tui",
