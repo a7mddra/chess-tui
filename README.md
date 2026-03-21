@@ -38,7 +38,7 @@ npm install -g chess-tui
 
 To connect to your real chess.com games, you need the companion Chrome extension:
 
-1. Download `chess-tui-extension.zip` from **[GitHub Releases](https://github.com/a7mddra/chess-tui/releases/download/v0.1.0/chess-tui-extension.zip)**.
+1. Download `chess-tui-extension.zip` from **[GitHub Releases](https://github.com/a7mddra/chess-tui/releases/download/v0.1.1/chess-tui-extension.zip)**.
 2. Extract the zip file.
 3. Open [`chrome://extensions`](chrome://extensions) in your browser.
 4. Enable **"Developer mode"** (toggle in the top right).

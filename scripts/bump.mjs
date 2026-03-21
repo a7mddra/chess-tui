@@ -60,7 +60,7 @@ try {
     execSync("npm run format", { stdio: "inherit" });
     console.log(`\x1b[36mBuilding Extension to check for errors...\x1b[0m`);
     execSync("npm run build:ext", { stdio: "inherit" });
-    
+
     execSync("git add .", { stdio: "inherit" });
     execSync(`git commit --allow-empty -m "chore(release): ext v${version}"`, {
       stdio: "inherit",
