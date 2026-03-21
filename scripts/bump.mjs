@@ -79,9 +79,7 @@ try {
     execSync(`git commit -m "chore(release): tui v${version}"`, {
       stdio: "inherit",
     });
-    execSync(`git tag v${version}`, { stdio: "inherit" });
     execSync("git push origin main", { stdio: "inherit" });
-    execSync(`git push origin v${version}`, { stdio: "inherit" });
 
     console.log(`\x1b[36mPublishing to NPM registry...\x1b[0m`);
     try {
