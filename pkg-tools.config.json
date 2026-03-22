@@ -1,0 +1,26 @@
+{
+  "tui": {
+    "npmName": "chess-tui",
+    "githubScope": "@a7mddra",
+    "packageDir": "packages/tui",
+    "buildCommand": "npm run build:tui",
+
+    "bumpFiles": ["package.json", "packages/tui/package.json"],
+    "versionFiles": ["VERSION"],
+    "readmeAssetUrl": null,
+    "tagName": null,
+    "commitMessage": "chore(release): tui v%VERSION%",
+    "postBumpScript": "node scripts/publish.mjs tui"
+  },
+  "ext": {
+    "packageDir": "packages/ext",
+    "buildCommand": "npm run build:ext",
+
+    "bumpFiles": ["packages/ext/package.json", "packages/ext/manifest.json"],
+    "versionFiles": [],
+    "readmeAssetUrl": "releases/download/v%VERSION%/chess-tui-extension.zip",
+    "tagName": "v%VERSION%",
+    "commitMessage": "chore(release): ext v%VERSION%",
+    "postBumpScript": null
+  }
+}

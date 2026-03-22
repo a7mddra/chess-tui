@@ -7,13 +7,14 @@
     "packages/*"
   ],
   "scripts": {
+    "format": "prettier --write .",
     "build:tui": "npm run build --workspace chess-tui",
+    "build:ext": "npm run build --workspace @chess-tui/ext",
     "bump:ext": "node scripts/bump.mjs ext",
     "bump:tui": "node scripts/bump.mjs tui",
-    "build:ext": "npm run build --workspace @chess-tui/ext",
     "dev:ext": "npm run dev --workspace @chess-tui/ext",
     "dev:tui": "npm run dev --workspace chess-tui",
-    "format": "prettier --write .",
+    "publish:tui": "node scripts/publish.mjs tui",
     "start:tui": "npm run start --workspace chess-tui",
     "tsc:ext": "npm run typecheck --workspace @chess-tui/ext",
     "tsc:tui": "npm run typecheck --workspace chess-tui",
